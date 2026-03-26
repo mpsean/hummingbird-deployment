@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
-    targetRevision: HEAD
+    targetRevision: ArgoCD-DH
     path: .
     directory:
       recurse: true
