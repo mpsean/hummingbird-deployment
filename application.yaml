@@ -9,9 +9,13 @@ spec:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: HEAD
     path: .
+    directory:
+      recurse: true
+      include: '{signin-api-deployment.yaml,signin-db.yaml}'
+      exclude: 'old/**'
   destination:
     server: https://kubernetes.default.svc
-    namespace: signin-frontend
+    namespace: signin
     
   syncPolicy:
     syncOptions:
