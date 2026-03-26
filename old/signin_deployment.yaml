@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signin-deployment
+  namespace: signin
+  labels:
+    app: signin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: signin
+  template:
+    metadata:
+      labels:
+        app: signin
+    spec:
+      containers:
+      - name: signin
+        image: mpsean/signin 
+        ports:
+        - containerPort: 80

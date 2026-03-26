@@ -1,0 +1,36 @@
+# signin-frontend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signin-f
+  namespace: signin
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: signin-f
+  template:
+    metadata:
+      labels:
+        app: signin-f
+    spec:
+      containers:
+        - name: signin-f
+          image: mpsean/signin:v5
+          imagePullPolicy: Always  
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signin-svc
+  namespace: signin
+spec:
+  type: NodePort        # changed from ClusterIP, for direct access in dev
+  selector:
+    app: signin-f
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080   # any port 30000-32767
