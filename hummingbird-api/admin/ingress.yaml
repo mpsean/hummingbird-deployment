@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: hummingbird-admin-route
+  namespace: hummingbird-admin
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`admin.hmmbird.xyz`)
+      kind: Rule
+      services:
+        - name: hummingbird-admin
+          port: 80
