@@ -1,0 +1,211 @@
+# =============================================================================
+# Hummingbird Signin — Full Stack Deployment
+# Namespace: hummingbird-signin
+# Services: postgres, signin-api, signin-frontend
+# Ingress:  signin.hmmbird.xyz → signin-frontend (nginx proxies /api/ → signin-api)
+# =============================================================================
+#
+# Build frontend image with API URL baked in (nginx proxies so use the public URL):
+#   docker build \
+#     --build-arg VITE_API_URL=http://signin.hmmbird.xyz \
+#     -t mpsean/hummingbird-signin-frontend:latest \
+#     ./Signin-API/login-api-latest2/login-api/hummingbird-signin-frontend
+#   docker push mpsean/hummingbird-signin-frontend:latest
+#
+#   docker build -t mpsean/hummingbird-signin-api:latest \
+#     ./Signin-API/login-api-latest2/login-api/backend
+#   docker push mpsean/hummingbird-signin-api:latest
+
+
+
+# ── Postgres ──────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: signin-postgres-pvc
+  namespace: hummingbird-signin
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: signin-postgres
+  namespace: hummingbird-signin
+spec:
+  serviceName: signin-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signin-postgres
+  template:
+    metadata:
+      labels:
+        app: signin-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_DB
+              value: signin
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: signin-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: signin-db-secret
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: signin-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signin-postgres
+  namespace: hummingbird-signin
+spec:
+  selector:
+    app: signin-postgres
+  ports:
+    - port: 5432
+
+---
+# ── Signin API ────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signin-api
+  namespace: hummingbird-signin
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: signin-api
+  template:
+    metadata:
+      labels:
+        app: signin-api
+    spec:
+      containers:
+        - name: signin-api
+          image: mpsean/hummingbird-signin-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:5001
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: signin-db-secret
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: signin-db-secret
+                  key: password
+            - name: ConnectionStrings__DefaultConnection
+              value: Host=signin-postgres;Port=5432;Database=signin;Username=$(DB_USER);Password=$(DB_PASS)
+            - name: Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: signin-jwt-secret
+                  key: secret-key
+            - name: Jwt__Issuer
+              value: LoginApi
+            - name: Jwt__Audience
+              value: LoginApiUsers
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signin-api
+  namespace: hummingbird-signin
+spec:
+  selector:
+    app: signin-api
+  ports:
+    - port: 5001
+      targetPort: 5001
+
+---
+# ── Signin Frontend ───────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signin-frontend
+  namespace: hummingbird-signin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signin-frontend
+  template:
+    metadata:
+      labels:
+        app: signin-frontend
+    spec:
+      containers:
+        - name: signin-frontend
+          image: mpsean/hummingbird-signin-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signin-frontend
+  namespace: hummingbird-signin
+spec:
+  selector:
+    app: signin-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+# ── Traefik IngressRoute ──────────────────────────────────────────────────────
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: signin-route
+  namespace: hummingbird-signin
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`signin.hmmbird.xyz`)
+      kind: Rule
+      services:
+        - name: signin-frontend
+          port: 80

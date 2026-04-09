@@ -4,7 +4,7 @@ metadata:
   name: hummingbird-frontend
   namespace: tenant-TENANT_SLUG
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: hummingbird-frontend

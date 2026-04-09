@@ -1,0 +1,207 @@
+# =============================================================================
+# Login API — Kubernetes Deployment
+# Namespace: signin-page (central auth entry point)
+# =============================================================================
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: signin-page
+
+---
+# Secret — never commit real values, create with kubectl:
+# kubectl create secret generic login-api-secrets \
+#   --from-literal=ConnectionStrings__DefaultConnection="Host=signin-postgres-ext;Port=5432;Database=login_db;Username=postgres;Password=yourpassword" \
+#   --from-literal=Jwt__SecretKey="your-super-secret-key-at-least-32-chars!" \
+#   --from-literal=Jwt__Issuer="LoginApi" \
+#   --from-literal=Jwt__Audience="LoginApiUsers" \
+#   -n signin-page
+apiVersion: v1
+kind: Secret
+metadata:
+  name: login-api-secrets
+  namespace: signin-page
+type: Opaque
+stringData:
+  ConnectionStrings__DefaultConnection: "Host=signin-postgres-ext;Port=5432;Database=login_db;Username=postgres;Password=yourpassword"
+  Jwt__SecretKey: "your-super-secret-key-at-least-32-chars!"
+  Jwt__Issuer: "LoginApi"
+  Jwt__Audience: "LoginApiUsers"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: login-api-config
+  namespace: signin-page
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:5001"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: login-api
+  namespace: signin-page
+  labels:
+    app: login-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: login-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Allow 1 extra pod during update
+      maxUnavailable: 0  # Never take pods down before new ones are ready
+  template:
+    metadata:
+      labels:
+        app: login-api
+    spec:
+      # Pull from Azure Container Registry
+      imagePullSecrets:
+        - name: acr-secret
+
+      # Tolerate the dedicated:signin taint on the signin node
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "signin"
+          effect: "NoSchedule"
+
+      # Prefer the dedicated signin node but allow others as fallback
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: dedicated
+                    operator: In
+                    values:
+                      - signin
+
+      # Relaxed topology spread — ScheduleAnyway allows single-node fallback
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: login-api
+
+      containers:
+        - name: login-api
+          image: yourregistry.azurecr.io/login-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+
+          # Load non-secret config from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: login-api-config
+            - secretRef:
+                name: login-api-secrets
+
+          # Resource limits (tuned for B1ms/B2als Azure VMs)
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: login-api-svc
+  namespace: signin-page
+spec:
+  selector:
+    app: login-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5001
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: login-api-ingress
+  namespace: signin-page
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "5"
+spec:
+  tls:
+    - hosts:
+        - auth.yourdomain.com
+      secretName: login-api-tls
+  rules:
+    - host: auth.yourdomain.com
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: login-api-svc
+                port:
+                  number: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: login-api-hpa
+  namespace: signin-page
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: login-api
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

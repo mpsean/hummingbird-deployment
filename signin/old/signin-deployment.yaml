@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signin-api
+  namespace: signin
+  labels:
+    app: signin-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: signin-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: signin-api
+    spec:
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "signin"
+          effect: "NoSchedule"
+
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: dedicated
+                    operator: In
+                    values:
+                      - signin
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway  # DoNotSchedule causes FailedScheduling with few nodes
+          labelSelector:
+            matchLabels:
+              app: signin-api
+
+      containers:
+        - name: signin-api
+          image: mpsean/login-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+
+          envFrom:
+            - configMapRef:
+                name: signin-api-config
+            - secretRef:
+                name: signin-api-secrets
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5

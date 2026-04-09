@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hummingbird-signin-frontend
+  labels:
+    app: hummingbird-signin-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hummingbird-signin-frontend
+  template:
+    metadata:
+      labels:
+        app: hummingbird-signin-frontend
+    spec:
+      containers:
+        - name: hummingbird-signin-frontend
+          image: your-registry/hummingbird-signin-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hummingbird-signin-frontend
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: "13.228.156.147"
+  selector:
+    app: hummingbird-signin-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hummingbird-signin-frontend
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: signin.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hummingbird-signin-frontend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - signin.yourdomain.com
+      secretName: hummingbird-signin-tls

@@ -45,6 +45,15 @@ spec:
               value: "true"
             - name: Kubernetes__FrontendImage
               value: mpsean/hummingbird-frontend:latest
+            - name: Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: secret-key
+            - name: Jwt__Issuer
+              value: LoginApi
+            - name: Jwt__Audience
+              value: LoginApiUsers
 ---
 apiVersion: v1
 kind: Service
