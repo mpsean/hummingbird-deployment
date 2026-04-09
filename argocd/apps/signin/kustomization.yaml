@@ -1,0 +1,4 @@
+resources:
+  - ../../../signin/namespace.yaml
+  - ../../../signin/secret.yaml
+  - ../../../signin/signin.yaml

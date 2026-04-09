@@ -1,0 +1,92 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: hummingbird
+  namespace: argocd
+spec:
+  description: Hummingbird deployment stacks
+  sourceRepos:
+    - https://github.com/mpsean/hummingbird-deployment.git
+  destinations:
+    - namespace: hummingbird-api
+      server: https://kubernetes.default.svc
+    - namespace: hummingbird-admin
+      server: https://kubernetes.default.svc
+    - namespace: hummingbird-signin
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hummingbird-api
+  namespace: argocd
+spec:
+  project: hummingbird
+  source:
+    repoURL: https://github.com/mpsean/hummingbird-deployment.git
+    targetRevision: master
+    path: argocd/apps/api
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hummingbird-api
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hummingbird-admin
+  namespace: argocd
+spec:
+  project: hummingbird
+  source:
+    repoURL: https://github.com/mpsean/hummingbird-deployment.git
+    targetRevision: master
+    path: argocd/apps/admin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hummingbird-admin
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hummingbird-signin
+  namespace: argocd
+spec:
+  project: hummingbird
+  source:
+    repoURL: https://github.com/mpsean/hummingbird-deployment.git
+    targetRevision: master
+    path: argocd/apps/signin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hummingbird-signin
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
