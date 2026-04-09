@@ -44,7 +44,7 @@ spec:
             - name: Kubernetes__Enabled
               value: "true"
             - name: Kubernetes__FrontendImage
-              value: mpsean/hummingbird-frontend:latest
+              value: pemapol/hummingbird-frontend:latest
             - name: Jwt__SecretKey
               valueFrom:
                 secretKeyRef:
