@@ -29,15 +29,16 @@ kind: Application
 metadata:
   name: hummingbird-api
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-api
+    argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
     path: hummingbird-api/api
-    directory:
-      recurse: false
-      include: '{namespace.yaml,secrets.yaml,rbac.yaml,postgres.yaml,api.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-api
@@ -55,15 +56,16 @@ kind: Application
 metadata:
   name: hummingbird-admin
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: admin=mpsean/hummingbird-admin
+    argocd-image-updater.argoproj.io/admin.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
     path: hummingbird-api/admin
-    directory:
-      recurse: false
-      include: '{namespace.yaml,admin.yaml,ingress.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-admin
@@ -81,15 +83,17 @@ kind: Application
 metadata:
   name: hummingbird-signin
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-signin-api,frontend=mpsean/hummingbird-signin-frontend
+    argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
     path: signin
-    directory:
-      recurse: false
-      include: '{namespace.yaml,secret.yaml,signin.yaml,signin-frontend.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-signin
