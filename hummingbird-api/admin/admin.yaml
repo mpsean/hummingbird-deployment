@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: admin
-          image: mpsean/hummingbird-admin:latest
+          image: pemapol/hummingbird-admin:latest
           ports:
             - containerPort: 80
           env:
