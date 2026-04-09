@@ -32,6 +32,7 @@ metadata:
   annotations:
     argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-api
     argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
@@ -59,6 +60,7 @@ metadata:
   annotations:
     argocd-image-updater.argoproj.io/image-list: admin=mpsean/hummingbird-admin
     argocd-image-updater.argoproj.io/admin.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/admin.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
@@ -86,7 +88,9 @@ metadata:
   annotations:
     argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-signin-api,frontend=mpsean/hummingbird-signin-frontend
     argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: hummingbird
