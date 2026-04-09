@@ -1,4 +1,0 @@
-resources:
-  - ../../../hummingbird-api/admin/namespace.yaml
-  - ../../../hummingbird-api/admin/admin.yaml
-  - ../../../hummingbird-api/admin/ingress.yaml

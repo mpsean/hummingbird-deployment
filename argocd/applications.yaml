@@ -34,7 +34,10 @@ spec:
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
-    path: argocd/apps/api
+    path: hummingbird-api/api
+    directory:
+      recurse: false
+      include: '{namespace.yaml,secrets.yaml,rbac.yaml,postgres.yaml,api.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-api
@@ -57,7 +60,10 @@ spec:
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
-    path: argocd/apps/admin
+    path: hummingbird-api/admin
+    directory:
+      recurse: false
+      include: '{namespace.yaml,admin.yaml,ingress.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-admin
@@ -80,7 +86,10 @@ spec:
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
-    path: argocd/apps/signin
+    path: signin
+    directory:
+      recurse: false
+      include: '{namespace.yaml,secret.yaml,signin.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-signin
