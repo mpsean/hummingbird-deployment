@@ -89,7 +89,7 @@ spec:
     path: signin
     directory:
       recurse: false
-      include: '{namespace.yaml,secret.yaml,signin.yaml}'
+      include: '{namespace.yaml,secret.yaml,signin.yaml,signin-frontend.yaml}'
   destination:
     server: https://kubernetes.default.svc
     namespace: hummingbird-signin
