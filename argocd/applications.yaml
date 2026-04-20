@@ -118,7 +118,7 @@ metadata:
   name: hummingbird-infra
   namespace: argocd
 spec:
-  project: hummingbird
+  project: default
   source:
     repoURL: https://github.com/mpsean/hummingbird-deployment.git
     targetRevision: master
