@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: hummingbird-api-route
+  namespace: hummingbird-api
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`api.hmmbird.xyz`)
+      kind: Rule
+      services:
+        - name: hummingbird-api
+          port: 5000

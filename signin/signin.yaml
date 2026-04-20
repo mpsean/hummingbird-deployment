@@ -27,6 +27,7 @@ metadata:
   namespace: hummingbird-signin
 spec:
   accessModes: [ReadWriteOnce]
+  storageClassName: ebs-gp3
   resources:
     requests:
       storage: 2Gi
@@ -52,6 +53,8 @@ spec:
         - name: postgres
           image: postgres:16-alpine
           env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_DB
               value: signin
             - name: POSTGRES_USER
