@@ -47,11 +47,6 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`signin.hmmbird.xyz`) && PathPrefix(`/api`)
-      kind: Rule
-      services:
-        - name: signin-api                                           
-          port: 5001
     - match: Host(`signin.hmmbird.xyz`)
       kind: Rule
       services:
