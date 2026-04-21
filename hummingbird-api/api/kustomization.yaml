@@ -6,3 +6,4 @@ resources:
   - rbac.yaml
   - postgres.yaml
   - api.yaml
+  - ingress.yaml
