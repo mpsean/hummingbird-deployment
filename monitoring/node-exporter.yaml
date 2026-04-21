@@ -12,7 +12,6 @@ spec:
       labels:
         app: node-exporter
     spec:
-      hostNetwork: true
       hostPID: true
       tolerations:
         - key: node-role.kubernetes.io/control-plane
