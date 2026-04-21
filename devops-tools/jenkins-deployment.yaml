@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: devops-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: jenkins-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ip-10-0-2-43
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: cicd
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: jenkins-admin
+      initContainers:
+        - name: install-docker-cli
+          image: docker:27-cli
+          command: ['sh', '-c', 'cp /usr/local/bin/docker /docker-bin/docker && chmod +x /docker-bin/docker']
+          volumeMounts:
+            - name: docker-bin
+              mountPath: /docker-bin
+      containers:
+        - name: dind
+          image: docker:27-dind
+          securityContext:
+            privileged: true
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          command: ["sh", "-c"]
+          args:
+            - |
+              rm -rf /var/lib/docker/containers/* /var/lib/docker/tmp/* /var/lib/docker/exec
+              exec dockerd --host=tcp://0.0.0.0:2375 --storage-driver=overlay2 --exec-root=/var/lib/docker/exec
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          volumeMounts:
+            - name: docker-graph
+              mountPath: /var/lib/docker
+          livenessProbe:
+            exec:
+              command: ['sh', '-c', 'DOCKER_HOST=tcp://localhost:2375 docker info > /dev/null']
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+        - name: jenkins
+          image: jenkins/jenkins:lts
+          env:
+            - name: DOCKER_HOST
+              value: tcp://localhost:2375
+          resources:
+            limits:
+              memory: "1500Mi"
+              cpu: "1000m"
+            requests:
+              memory: "500Mi"
+              cpu: "500m"
+          ports:
+            - name: httpport
+              containerPort: 8080
+            - name: jnlpport
+              containerPort: 50000
+          livenessProbe:
+            httpGet:
+              path: "/login"
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: "/login"
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: jenkins-data
+              mountPath: /var/jenkins_home
+            - name: docker-bin
+              mountPath: /usr/local/bin/docker
+              subPath: docker
+      volumes:
+        - name: jenkins-data
+          persistentVolumeClaim:
+            claimName: jenkins-pv-claim
+        - name: docker-graph
+          persistentVolumeClaim:
+            claimName: dind-pv-claim
+        - name: docker-bin
+          emptyDir: {}
