@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: signin-frontend
-          image: pemapol/hummingbird-signin-frontend:latest
+          image: mpsean/hummingbird-signin-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
