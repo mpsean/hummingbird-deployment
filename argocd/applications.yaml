@@ -35,7 +35,7 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: api=pemapol/hummingbird-api
     argocd-image-updater.argoproj.io/api.update-strategy: newest-build
     argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
-    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: hummingbird
   source:
@@ -63,7 +63,7 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: admin=pemapol/hummingbird-admin
     argocd-image-updater.argoproj.io/admin.update-strategy: newest-build
     argocd-image-updater.argoproj.io/admin.allow-tags: regexp:^\d+$
-    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: hummingbird
   source:
@@ -93,7 +93,7 @@ metadata:
     argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
     argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^\d+$
-    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: hummingbird
   source:
