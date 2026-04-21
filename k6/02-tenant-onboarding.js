@@ -1,8 +1,9 @@
 /**
  * Scenario 2 — New Tenant Onboarding
  *
- * Simulates parallel onboarding of up to five new hotel tenants via the
- * admin API: register tenant → initialise schema → bulk-insert employees.
+ * Simulates parallel provisioning of new hotel tenants via the admin API.
+ * Schema initialisation is synchronous — the API creates the tenant DB on
+ * registration; there is no separate initialise or bulk-insert endpoint.
  *
  * Shape  : 50 VUs constant for 5 minutes
  * SLA    : p95 < 1 000 ms, error rate < 1 %
@@ -19,7 +20,6 @@ import { API_ADMIN_KEY } from './lib/auth.js';
 
 const errorRate    = new Rate('onboarding_errors');
 const provisionDur = new Trend('onboarding_provision_duration', true);
-const insertDur    = new Trend('onboarding_bulk_insert_duration', true);
 
 const API_BASE = __ENV.API_URL || 'http://api.hmmbird.xyz';
 
@@ -28,46 +28,33 @@ const ADMIN_HEADERS = {
   'X-Admin-Key': API_ADMIN_KEY,
 };
 
-// Generate a unique tenant slug per VU + iteration to avoid conflicts
-function tenantSlug() {
+// Unique subdomain per VU + iteration to avoid conflicts
+function tenantSubdomain() {
   return `load-hotel-${__VU}-${__ITER}`;
-}
-
-// Build 3 000 synthetic employee records for bulk insert
-function buildEmployees(count = 3000) {
-  return Array.from({ length: count }, (_, i) => ({
-    firstName:   `First${i}`,
-    lastName:    `Last${i}`,
-    email:       `emp${i}@load-test.internal`,
-    position:    'Staff',
-    department:  'Operations',
-    hireDate:    '2024-01-01',
-  }));
 }
 
 export const options = {
   scenarios: {
     tenant_onboarding: {
-      executor:  'constant-vus',
-      vus:       50,
-      duration:  '5m',
+      executor: 'constant-vus',
+      vus:      50,
+      duration: '5m',
     },
   },
   thresholds: {
-    'onboarding_provision_duration':    ['p(95)<1000'],
-    'onboarding_bulk_insert_duration':  ['p(95)<1000'],
-    'onboarding_errors':                ['rate<0.01'],
-    'http_req_failed':                  ['rate<0.01'],
+    'onboarding_provision_duration': ['p(95)<1000'],
+    'onboarding_errors':             ['rate<0.01'],
+    'http_req_failed':               ['rate<0.01'],
   },
 };
 
 export default function () {
-  const slug = tenantSlug();
+  const subdomain = tenantSubdomain();
 
-  // Step 1 — Register tenant via admin API
+  // Register tenant — API creates the tenant DB synchronously
   const registerRes = http.post(
     `${API_BASE}/api/admin/tenants`,
-    JSON.stringify({ slug, name: `Load Hotel ${__VU}` }),
+    JSON.stringify({ subdomain, name: `Load Hotel ${__VU}-${__ITER}` }),
     { headers: ADMIN_HEADERS }
   );
 
@@ -78,38 +65,5 @@ export default function () {
   provisionDur.add(registerRes.timings.duration);
   errorRate.add(!registered);
 
-  if (!registered) {
-    sleep(2);
-    return;
-  }
-
-  // Step 2 — Trigger schema initialisation (may be synchronous or async)
-  const schemaRes = http.post(
-    `${API_BASE}/api/admin/tenants/${slug}/initialise`,
-    null,
-    { headers: ADMIN_HEADERS }
-  );
-
-  check(schemaRes, {
-    'schema init 200/202': (r) => r.status === 200 || r.status === 202 || r.status === 204,
-  });
-
-  sleep(1); // allow async schema creation to settle
-
-  // Step 3 — Bulk insert 3 000 employee records
-  const employees = buildEmployees(3000);
-  const insertRes = http.post(
-    `${API_BASE}/api/admin/tenants/${slug}/employees/bulk`,
-    JSON.stringify({ employees }),
-    { headers: ADMIN_HEADERS }
-  );
-
-  const inserted = check(insertRes, {
-    'bulk insert 200/202': (r) => r.status === 200 || r.status === 202,
-  });
-
-  insertDur.add(insertRes.timings.duration);
-  errorRate.add(!inserted);
-
-  sleep(3); // think time between onboarding cycles
+  sleep(3);
 }

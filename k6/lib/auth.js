@@ -8,7 +8,7 @@ const API_ADMIN_KEY = __ENV.ADMIN_KEY || 'hb-admin-dev-key';
 export function loginTenant(tenantSlug, username, password) {
   const res = http.post(
     `${SIGNIN_BASE}/api/auth/login`,
-    JSON.stringify({ tenantSlug, username, password }),
+    JSON.stringify({ tenantSlug, emailOrUsername: username, password }),
     { headers: { 'Content-Type': 'application/json' } }
   );
   check(res, { 'login 200': (r) => r.status === 200 });

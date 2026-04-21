@@ -67,18 +67,18 @@ export default function (tokens) {
 
   // Unique employee data per VU + iteration
   const employee = {
-    firstName:  `Temp${__VU}`,
-    lastName:   `Season${__ITER}`,
-    email:      `temp${__VU}.${__ITER}@load-test.internal`,
-    position:   'Seasonal Staff',
-    department: 'Hospitality',
-    hireDate:   new Date().toISOString().split('T')[0],
-    isTemporary: true,
+    name:         `Temp${__VU}`,
+    surname:      `Season${__ITER}`,
+    employeeCode: `TMP-${__VU}-${__ITER}`,
+    positionId:   1,
+    salary:       12000,
+    dateJoined:   new Date().toISOString().split('T')[0],
+    status:       'Active',
   };
 
   // Step 1 — Create (onboard) employee
   const createRes = http.post(
-    `${base}/api/v1/employees`,
+    `${base}/api/employees`,
     JSON.stringify(employee),
     { headers }
   );
@@ -106,7 +106,7 @@ export default function (tokens) {
 
   // Step 2 — Delete (offboard) employee
   const deleteRes = http.del(
-    `${base}/api/v1/employees/${employeeId}`,
+    `${base}/api/employees/${employeeId}`,
     null,
     { headers }
   );

@@ -20,7 +20,6 @@ import { loginTenant, tenantApiBase, tenantHeaders } from './lib/auth.js';
 const errorRate = new Rate('payroll_errors');
 const payrollDuration = new Trend('payroll_bulk_duration', true);
 
-// Five hotel tenants matching live data
 const TENANTS = [
   { slug: 'hotel-a', username: 'hr_admin', password: 'admin123' },
   { slug: 'acme',    username: 'hr_admin', password: 'admin123' },
@@ -29,10 +28,9 @@ const TENANTS = [
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];
 
-// Generate 100 sequential employee IDs per VU
-function employeeIds(start, count = 100) {
-  return Array.from({ length: count }, (_, i) => start + i);
-}
+const now = new Date();
+const CURRENT_MONTH = now.getMonth() + 1;
+const CURRENT_YEAR  = now.getFullYear();
 
 export const options = {
   scenarios: {
@@ -72,14 +70,12 @@ export default function (tokens) {
   const base = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
-  // Each VU submits payroll for 100 employees
-  const idStart = (__VU * 100) % 10000;
-  const payload = JSON.stringify({ employeeIds: employeeIds(idStart) });
+  const payload = JSON.stringify({ month: CURRENT_MONTH, year: CURRENT_YEAR });
 
-  const res = http.post(`${base}/api/v1/payroll/bulk`, payload, { headers });
+  const res = http.post(`${base}/api/payroll/calculate`, payload, { headers });
 
   const ok = check(res, {
-    'payroll bulk 200': (r) => r.status === 200 || r.status === 202,
+    'payroll calculate 200': (r) => r.status === 200 || r.status === 202,
   });
 
   payrollDuration.add(res.timings.duration);
