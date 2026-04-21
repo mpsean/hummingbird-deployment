@@ -16,7 +16,7 @@ spec:
       serviceAccountName: hummingbird-api
       containers:
         - name: api
-          image: mpsean/hummingbird-api:latest
+          image: pemapol/hummingbird-api:latest
           ports:
             - containerPort: 5000
           env:
@@ -44,7 +44,7 @@ spec:
             - name: Kubernetes__Enabled
               value: "true"
             - name: Kubernetes__FrontendImage
-              value: mpsean/hummingbird-frontend:latest
+              value: pemapol/hummingbird-frontend:latest
             - name: Jwt__SecretKey
               valueFrom:
                 secretKeyRef:

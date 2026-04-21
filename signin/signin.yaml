@@ -109,7 +109,7 @@ spec:
     spec:
       containers:
         - name: signin-api
-          image: mpsean/hummingbird-signin-api:latest
+          image: pemapol/hummingbird-signin-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5001
