@@ -21,6 +21,8 @@ spec:
       kind: ClusterRole
     - group: rbac.authorization.k8s.io
       kind: ClusterRoleBinding
+    - group: storage.k8s.io
+      kind: StorageClass
 
 ---
 
@@ -30,7 +32,7 @@ metadata:
   name: hummingbird-api
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-api
+    argocd-image-updater.argoproj.io/image-list: api=pemapol/hummingbird-api
     argocd-image-updater.argoproj.io/api.update-strategy: newest-build
     argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/write-back-method: git
@@ -58,7 +60,7 @@ metadata:
   name: hummingbird-admin
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: admin=mpsean/hummingbird-admin
+    argocd-image-updater.argoproj.io/image-list: admin=pemapol/hummingbird-admin
     argocd-image-updater.argoproj.io/admin.update-strategy: newest-build
     argocd-image-updater.argoproj.io/admin.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/write-back-method: git
@@ -86,7 +88,7 @@ metadata:
   name: hummingbird-signin
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: api=mpsean/hummingbird-signin-api,frontend=mpsean/hummingbird-signin-frontend
+    argocd-image-updater.argoproj.io/image-list: api=pemapol/hummingbird-signin-api,frontend=pemapol/hummingbird-signin-frontend
     argocd-image-updater.argoproj.io/api.update-strategy: newest-build
     argocd-image-updater.argoproj.io/api.allow-tags: regexp:^\d+$
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
@@ -107,3 +109,24 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hummingbird-infra
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mpsean/hummingbird-deployment.git
+    targetRevision: master
+    path: infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
