@@ -14,6 +14,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: hummingbird-signin
       server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
@@ -130,3 +132,26 @@ spec:
     automated:
       prune: true
       selfHeal: true
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hummingbird-monitoring
+  namespace: argocd
+spec:
+  project: hummingbird
+  source:
+    repoURL: https://github.com/mpsean/hummingbird-deployment.git
+    targetRevision: master
+    path: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
