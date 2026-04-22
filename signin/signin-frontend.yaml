@@ -19,6 +19,13 @@ spec:
         - name: signin-frontend
           image: pemapol/hummingbird-signin-frontend:latest
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
           ports:
             - containerPort: 80
 
