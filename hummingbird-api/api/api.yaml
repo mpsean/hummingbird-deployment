@@ -19,6 +19,13 @@ spec:
           image: pemapol/hummingbird-api:latest
           ports:
             - containerPort: 5000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           env:
             - name: ASPNETCORE_URLS
               value: http://+:5000

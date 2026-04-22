@@ -5,3 +5,4 @@ resources:
   - secret.yaml
   - signin.yaml
   - signin-frontend.yaml
+  - hpa.yaml

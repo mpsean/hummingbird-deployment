@@ -7,3 +7,4 @@ resources:
   - postgres.yaml
   - api.yaml
   - ingress.yaml
+  - hpa.yaml

@@ -137,6 +137,13 @@ spec:
               value: LoginApi
             - name: Jwt__Audience
               value: LoginApiUsers
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           readinessProbe:
             httpGet:
               path: /health
