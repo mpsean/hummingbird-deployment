@@ -29,6 +29,11 @@ spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
+          args:
+            - -c
+            - max_connections=500
+            - -c
+            - shared_buffers=256MB
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata

@@ -40,9 +40,9 @@ spec:
                   name: postgres-secret
                   key: password
             - name: ConnectionStrings__MasterConnection
-              value: Host=postgres;Port=5432;Database=hummingbird_master;Username=$(DB_USER);Password=$(DB_PASS)
+              value: Host=postgres;Port=5432;Database=hummingbird_master;Username=$(DB_USER);Password=$(DB_PASS);Maximum Pool Size=20;Timeout=5
             - name: TenantDbTemplate
-              value: Host=postgres;Port=5432;Database={db};Username=$(DB_USER);Password=$(DB_PASS)
+              value: Host=postgres;Port=5432;Database={db};Username=$(DB_USER);Password=$(DB_PASS);Maximum Pool Size=20;Timeout=5
             - name: AdminKey
               valueFrom:
                 secretKeyRef:
