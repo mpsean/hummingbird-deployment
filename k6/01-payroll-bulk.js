@@ -22,15 +22,15 @@ const payrollDuration = new Trend('payroll_bulk_duration', true);
 
 const TENANTS = [
   { slug: 'hotel-a', username: 'hr_admin', password: 'admin123' },
-  { slug: 'acme',    username: 'hr_admin', password: 'admin123' },
-  { slug: 'maipro',  username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-b',    username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-c',  username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-d', username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];
 
-const now = new Date();
-const CURRENT_MONTH = now.getMonth() + 1;
-const CURRENT_YEAR  = now.getFullYear();
+const CURRENT_MONTH         = 7;
+const CURRENT_YEAR          = 2024;
+const SERVICE_CHARGE_TOTAL  = 500000; // deterministic ฿500k monthly pool
 
 export const options = {
   scenarios: {
@@ -70,7 +70,11 @@ export default function (tokens) {
   const base = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
-  const payload = JSON.stringify({ month: CURRENT_MONTH, year: CURRENT_YEAR });
+  const payload = JSON.stringify({
+    Month:              CURRENT_MONTH,
+    Year:               CURRENT_YEAR,
+    ServiceChargeTotal: SERVICE_CHARGE_TOTAL,
+  });
 
   const res = http.post(`${base}/api/payroll/calculate`, payload, { headers });
 

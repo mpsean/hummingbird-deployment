@@ -22,8 +22,8 @@ const deleteDur    = new Trend('staff_delete_duration', true);
 
 const TENANTS = [
   { slug: 'hotel-a', username: 'hr_admin', password: 'admin123' },
-  { slug: 'acme',    username: 'hr_admin', password: 'admin123' },
-  { slug: 'maipro',  username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-b',    username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-c',  username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-d', username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];

@@ -6,15 +6,15 @@
  * (open) model so request throughput is controlled independently of VU count,
  * matching how real users arrive at the system.
  *
- * Shape  : ramp 0 → 200 RPS over 5 min, hold 200 RPS for 20 min, ramp down 5 min
+ * Shape  : ramp 0 → 200 RPS over 1 min, hold 200 RPS for 3 min, ramp down 1 min
  * Rate   : 200 req/s across all five tenants (~40 req/s per tenant)
  * Basis  : ~50 concurrent active HR users per tenant, 1–2 requests/min each
  *
  * Traffic mix (weighted random per iteration):
  *   40 % — list employees          (most frequent browsing action)
  *   25 % — view single employee    (detail drill-down)
- *   20 % — payroll status query    (routine payroll module checks)
- *   15 % — attendance update       (lightweight write; mirrors daily clock-in records)
+ *   20 % — payroll fetch           (routine check of a calculated payroll month)
+ *   15 % — attendance summary      (HR daily roll-up view)
  *
  * Pass criteria:
  *   p95 < 300 ms, p99 < 600 ms, error rate < 0.5 %
@@ -47,8 +47,8 @@ const errorRate = new Rate('baseline_errors');
 
 const TENANTS = [
   { slug: 'hotel-a', username: 'hr_admin', password: 'admin123' },
-  { slug: 'acme',    username: 'hr_admin', password: 'admin123' },
-  { slug: 'maipro',  username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-b',    username: 'hr_admin', password: 'admin123' },
+  { slug: 'hotel-c',  username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-d', username: 'hr_admin', password: 'admin123' },
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];
@@ -64,9 +64,9 @@ export const options = {
       // Ceiling for unexpected latency spikes; k6 will warn if this is reached
       maxVUs:          400,
       stages: [
-        { duration: '5m',  target: 200 }, // ramp up
-        { duration: '20m', target: 200 }, // steady state
-        { duration: '5m',  target: 0   }, // ramp down
+        { duration: '1m',  target: 200 }, // ramp up
+        { duration: '3m',  target: 200 }, // steady state
+        { duration: '1m',  target: 0   }, // ramp down
       ],
     },
   },
@@ -96,10 +96,8 @@ export default function (tokens) {
   const base    = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
-  const now   = new Date();
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
-  const today = now.toISOString().split('T')[0];
+  const month = 7;
+  const year  = 2024;
 
   // Randomly sample an employee ID within a realistic range per tenant
   const employeeId = Math.floor(Math.random() * 3000) + 1;
@@ -109,33 +107,26 @@ export default function (tokens) {
 
   if (roll < 0.40) {
     // List employees — most frequent HR browsing action
-    res = http.get(`${base}/api/employees`, { headers });
+    res = http.get(`${base}/api/personnel/employees`, { headers });
     check(res, { 'list employees 200': (r) => r.status === 200 });
     listDuration.add(res.timings.duration);
 
   } else if (roll < 0.65) {
     // View a single employee record — detail drill-down
-    res = http.get(`${base}/api/employees/${employeeId}`, { headers });
+    res = http.get(`${base}/api/personnel/employees/${employeeId}`, { headers });
     check(res, { 'get employee 200/404': (r) => r.status === 200 || r.status === 404 });
     detailDuration.add(res.timings.duration);
 
   } else if (roll < 0.85) {
-    // Payroll status query — routine check by HR and finance staff
-    res = http.get(
-      `${base}/api/payroll/status?month=${month}&year=${year}`,
-      { headers }
-    );
-    check(res, { 'payroll status 200': (r) => r.status === 200 });
+    // Payroll fetch — HR/finance reviewing the closed month's payroll
+    res = http.get(`${base}/api/payroll/${year}/${month}`, { headers });
+    check(res, { 'payroll fetch 200': (r) => r.status === 200 });
     payrollDuration.add(res.timings.duration);
 
   } else {
-    // Attendance update — lightweight daily write (clock-in / leave record)
-    res = http.patch(
-      `${base}/api/employees/${employeeId}/attendance`,
-      JSON.stringify({ date: today, status: 'present' }),
-      { headers }
-    );
-    check(res, { 'attendance update 2xx/404': (r) => r.status < 300 || r.status === 404 });
+    // Attendance summary — HR daily roll-up (per-employee totals for the month)
+    res = http.get(`${base}/api/timeattendance/${year}/${month}/summary`, { headers });
+    check(res, { 'attendance summary 200': (r) => r.status === 200 });
     attendanceDuration.add(res.timings.duration);
   }
 

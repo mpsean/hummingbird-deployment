@@ -3,3 +3,5 @@ hummingbird-api/api/secret.yaml
 .claude
 
 .DS_Store
+
+/sample-api

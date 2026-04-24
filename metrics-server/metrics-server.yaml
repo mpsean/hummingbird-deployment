@@ -110,6 +110,8 @@ spec:
     spec:
       serviceAccountName: metrics-server
       priorityClassName: system-cluster-critical
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       volumes:
         - name: tmp-dir
           emptyDir: {}
@@ -118,14 +120,14 @@ spec:
           image: registry.k8s.io/metrics-server/metrics-server:v0.7.1
           args:
             - --cert-dir=/tmp
-            - --secure-port=10250
+            - --secure-port=4443
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
             - --kubelet-use-node-status-port
             - --metric-resolution=15s
             - --kubelet-insecure-tls
           ports:
             - name: https
-              containerPort: 10250
+              containerPort: 4443
               protocol: TCP
           livenessProbe:
             failureThreshold: 3
