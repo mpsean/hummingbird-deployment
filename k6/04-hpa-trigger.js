@@ -51,21 +51,22 @@ export const options = {
       executor:        'ramping-arrival-rate',
       startRate:       0,
       timeUnit:        '1s',
-      // t3.medium infra target: 150 RPS = 3× the 50 RPS baseline, sufficient to breach 50% CPU
-      // Little's Law at 150 RPS × 1 s app latency = 150 VUs; 2× headroom
-      preAllocatedVUs: 300,
-      maxVUs:          600,
+      // t3.xlarge postgres handles 50% payroll write mix; API CPU on t3.medium is the ceiling.
+      // 300 RPS = 6× the 75 RPS baseline; 150 RPS of payroll writes to the dedicated DB node.
+      // Little's Law at 300 RPS × 1 s app latency = 300 VUs; 2× headroom.
+      preAllocatedVUs: 600,
+      maxVUs:          1200,
       stages: [
-        { duration: '1m', target: 150 }, // ramp — push CPU past HPA 50% threshold
-        { duration: '3m', target: 150 }, // hold — sustains pressure past the 60 s stabilization window
+        { duration: '1m', target: 300 }, // ramp — push CPU past HPA 50% threshold
+        { duration: '3m', target: 300 }, // hold — sustains pressure past the 60 s stabilisation window
         { duration: '1m', target: 0   }, // ramp down
       ],
     },
   },
   thresholds: {
-    // Infrastructure focus: HPA fires and error rate drops after scale-up — latency SLAs removed
-    'hpa_errors':      ['rate<0.10'],
-    'http_req_failed': ['rate<0.10'],
+    // t3.xlarge handles 50% write mix without timeouts — tighten error budget to 5%.
+    'hpa_errors':      ['rate<0.05'],
+    'http_req_failed': ['rate<0.05'],
   },
   ext: {
     prometheusRW: {
@@ -95,7 +96,8 @@ export default function (tokens) {
   const roll = Math.random();
   let res;
 
-  // Spread VUs across 24 historical periods to avoid DB deadlocks on concurrent writes
+  // Spread VUs across 24 historical periods. With postgres on t3.xlarge (4 vCPU / 16 GiB)
+  // DB write concurrency is no longer the primary bottleneck — API CPU on t3.medium workers is.
   const periodIndex = (__VU - 1) % 24;
   const calcYear    = periodIndex < 12 ? 2024 : 2023;
   const calcMonth   = (periodIndex % 12) + 1;

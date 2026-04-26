@@ -28,9 +28,11 @@ const ADMIN_HEADERS = {
   'X-Admin-Key': API_ADMIN_KEY,
 };
 
-// Unique subdomain per VU + iteration to avoid conflicts
+// Run-scoped unique subdomains — base36 timestamp prefix ensures each test run
+// creates fresh tenants and never conflicts with leftovers from previous runs.
+const RUN_ID = Date.now().toString(36).slice(-5); // e.g. "m3q7k"
 function tenantSubdomain() {
-  return `load-hotel-${__VU}-${__ITER}`;
+  return `t${RUN_ID}-${__VU}-${__ITER}`;
 }
 
 export const options = {
@@ -42,8 +44,9 @@ export const options = {
     },
   },
   thresholds: {
-    // Infrastructure focus: k8s resource provisioning completes — 10 s allows for DB schema creation on t3.medium
-    'onboarding_provision_duration': ['p(95)<10000'],
+    // Infrastructure focus: k8s resource provisioning completes.
+    // t3.xlarge postgres (4 vCPU) runs DDL 3-4× faster than t3.medium — 5 s is achievable.
+    'onboarding_provision_duration': ['p(95)<5000'],
     'onboarding_errors':             ['rate<0.05'],
     'http_req_failed':               ['rate<0.05'],
   },

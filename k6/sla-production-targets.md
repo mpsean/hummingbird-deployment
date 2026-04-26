@@ -3,6 +3,14 @@
 This document captures the **original application-performance test parameters** designed for
 production-class hardware (e.g. m5.xlarge or equivalent — 4 vCPU / 16 GiB per node).
 
+## Current cluster topology
+
+| Component | Node type | vCPU | RAM | Notes |
+|---|---|---|---|---|
+| API workers | t3.medium | 2 (burstable) | 4 GiB | HPA min 8, max 50 |
+| Postgres | t3.xlarge (dedicated, tainted `workload=postgres`) | 4 | 16 GiB | Postgres requests 2 CPU / 8 GiB |
+| CI/CD (Jenkins + ArgoCD) | t3.medium (tainted `dedicated=cicd`) | 2 | 4 GiB | |
+
 The current scenario files have been adjusted for **infrastructure verification on t3.medium**
 (2 vCPU burstable, 4 GiB). Use this file as the reference when upgrading node types or
 validating that optimised application code meets the original SLAs.

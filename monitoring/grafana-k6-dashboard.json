@@ -53,7 +53,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus_max", "legendFormat": "Max VUs (scenario ceiling)" }
       ] },
 
-    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  PASS: error < 5%, HPA must NOT fire  |  50 RPS target (t3.medium sustainable)", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
+    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  PASS: error < 5%, HPA must NOT fire  |  75 RPS target (t3.medium API + t3.xlarge postgres)", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
 
     { "id": 11, "type": "timeseries", "title": "00 — Response Time by Action (p95)",
       "gridPos": { "x": 0, "y": 5, "w": 16, "h": 8 },
@@ -78,8 +78,8 @@
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors_rate", "legendFormat": "Error Rate" }] },
 
-    { "id": 13, "type": "stat", "title": "00 — API Replicas (steady state = 16, test must not push higher)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+    { "id": 13, "type": "stat", "title": "00 — API Replicas (live — must stay ≤ 16 during test)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 17 }, { "color": "red", "value": 24 }
       ] } } },
@@ -88,7 +88,7 @@
     { "id": 14, "type": "stat", "title": "00 — Achieved RPS", "gridPos": { "x": 16, "y": 9, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "red", "value": null }, { "color": "yellow", "value": 30 }, { "color": "green", "value": 45 }
+        { "color": "red", "value": null }, { "color": "yellow", "value": 55 }, { "color": "green", "value": 68 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='ordinary_working_day'}[1m]))", "legendFormat": "RPS" }] },
 
@@ -121,7 +121,7 @@
           "legendFormat": "Ready Replicas" }
       ] },
 
-    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  PASS: error < 20%, HPA fires within 90 s  |  1 000 VUs peak (t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
+    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  PASS: error < 5%, HPA fires within 90 s  |  1 000 VUs peak", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
 
     { "id": 21, "type": "timeseries", "title": "01 — Payroll Calculate Duration & VUs",
       "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
@@ -199,7 +199,7 @@
           "legendFormat": "API Memory (MiB)" }
       ] },
 
-    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  PASS: provision p95 < 10 s, error < 5%  |  50 VUs, each provisions a full DB schema", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
+    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  PASS: provision p95 < 5 s, error < 5%  |  50 VUs, each provisions a full DB schema", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
 
     { "id": 31, "type": "timeseries", "title": "02 — Provision Duration & VUs",
       "gridPos": { "x": 0, "y": 35, "w": 16, "h": 8 },
@@ -224,7 +224,7 @@
     { "id": 32, "type": "stat", "title": "02 — Provision p95 (pass < 10 s)", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 7 }, { "color": "red", "value": 10 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 3.5 }, { "color": "red", "value": 5 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p95", "legendFormat": "p95" }] },
 
@@ -273,7 +273,7 @@
           "legendFormat": "Load-test Namespaces" }
       ] },
 
-    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  PASS: error < 30%, CA adds nodes within hold window  |  2 000 VUs peak (t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 49, "w": 24, "h": 1 } },
+    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  PASS: error < 10%, CA adds nodes within hold window  |  5 000 VUs peak", "collapsed": false, "gridPos": { "x": 0, "y": 49, "w": 24, "h": 1 } },
 
     { "id": 41, "type": "timeseries", "title": "03 — Create & Delete Employee Duration (p95)",
       "gridPos": { "x": 0, "y": 50, "w": 16, "h": 8 },
@@ -354,7 +354,7 @@
           "legendFormat": "Pod Restarts (5m)" }
       ] },
 
-    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  PASS: error < 10%, replicas increase within 90 s of hold start  |  150 RPS (3× baseline, t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 64, "w": 24, "h": 1 } },
+    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  PASS: error < 5%, replicas increase within 90 s of hold start  |  300 RPS (6× baseline)", "collapsed": false, "gridPos": { "x": 0, "y": 64, "w": 24, "h": 1 } },
 
     { "id": 51, "type": "timeseries", "title": "04 — Response Times & HPA Replica Count",
       "gridPos": { "x": 0, "y": 65, "w": 16, "h": 8 },

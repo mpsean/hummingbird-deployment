@@ -72,13 +72,14 @@ export const options = {
       executor:        'ramping-arrival-rate',
       startRate:       0,
       timeUnit:        '1s',
-      // t3.medium infra target: 50 RPS sustainable (20% baseline CPU per node)
-      // Little's Law at 50 RPS × 1 s app latency = 50 VUs; 2× headroom
-      preAllocatedVUs: 100,
-      maxVUs:          200,
+      // t3.medium API workers + t3.xlarge postgres: 75 RPS confirmed stable.
+      // Postgres no longer rate-limits reads; API CPU is the ceiling.
+      // Little's Law at 75 RPS × 300 ms avg latency = 22.5 VUs; 5× headroom for spikes.
+      preAllocatedVUs: 120,
+      maxVUs:          250,
       stages: [
-        { duration: '1m',  target: 50  }, // ramp up
-        { duration: '3m',  target: 50  }, // steady state — HPA must NOT fire
+        { duration: '1m',  target: 75  }, // ramp up
+        { duration: '3m',  target: 75  }, // steady state — HPA must NOT fire
         { duration: '1m',  target: 0   }, // ramp down
       ],
     },

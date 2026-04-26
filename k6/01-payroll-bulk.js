@@ -36,17 +36,17 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m',  target: 150  }, // ramp — build CPU pressure
-        { duration: '30s', target: 300  }, // spike to peak
-        { duration: '5m',  target: 300  }, // hold — HPA must fire within 90 s and stabilise
+        { duration: '2m',  target: 500  }, // ramp — build CPU pressure
+        { duration: '30s', target: 1000 }, // spike to peak
+        { duration: '5m',  target: 1000 }, // hold — HPA must fire within 90 s and stabilise
         { duration: '2m',  target: 0    }, // ramp down
       ],
     },
   },
   thresholds: {
-    // Infrastructure focus: HPA fires and recovers — 20% errors during scale-up window accepted
-    'payroll_errors':  ['rate<0.20'],
-    'http_req_failed': ['rate<0.20'],
+    // Step toward production targets — 0.51% error at 400 VUs confirmed headroom; tighten to 5%.
+    'payroll_errors':  ['rate<0.05'],
+    'http_req_failed': ['rate<0.05'],
   },
   ext: {
     prometheusRW: {
@@ -75,12 +75,13 @@ export default function (tokens) {
   const base = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
-  // Traffic mix: 90 % reads / 10 % recalculate
-  // Reads drive CPU load for HPA; writes reduced to lower timeout rate below 20% threshold.
+  // Traffic mix: 80 % reads / 20 % recalculate
+  // Postgres on t3.xlarge (4 vCPU / 16 GiB) — can handle higher concurrent write volume.
+  // Reads drive API CPU load for HPA; writes test DB throughput at scale.
   const roll = Math.random();
   let res, ok;
 
-  if (roll < 0.90) {
+  if (roll < 0.80) {
     // READ: fetch pre-calculated payroll — 404 is expected when period has no data yet
     const periodIndex = (__VU - 1) % 24;
     const readYear    = periodIndex < 12 ? 2024 : 2023;
