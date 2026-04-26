@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: hummingbird-api
   minReplicas: 8
-  maxReplicas: 30
+  maxReplicas: 50
   metrics:
     - type: Resource
       resource:
