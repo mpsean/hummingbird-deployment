@@ -26,6 +26,13 @@ spec:
       labels:
         app: postgres
     spec:
+      nodeSelector:
+        workload: postgres
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: postgres
+          effect: NoSchedule
       containers:
         - name: postgres
           image: postgres:16-alpine
