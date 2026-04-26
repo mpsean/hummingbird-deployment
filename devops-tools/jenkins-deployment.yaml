@@ -47,8 +47,8 @@ spec:
               exec dockerd --host=tcp://0.0.0.0:2375 --storage-driver=overlay2 --exec-root=/var/lib/docker/exec
           resources:
             limits:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: "512Mi"
+              cpu: "300m"
             requests:
               memory: "256Mi"
               cpu: "100m"
@@ -69,11 +69,11 @@ spec:
               value: tcp://localhost:2375
           resources:
             limits:
-              memory: "1500Mi"
-              cpu: "1000m"
+              memory: "900Mi"
+              cpu: "450m"
             requests:
               memory: "500Mi"
-              cpu: "500m"
+              cpu: "200m"
           ports:
             - name: httpport
               containerPort: 8080
