@@ -113,6 +113,13 @@ export const options = {
     'ca_errors':       ['rate<0.15'],
     'http_req_failed': ['rate<0.15'],
   },
+  ext: {
+    prometheusRW: {
+      url: __ENV.PROMETHEUS_URL || 'http://prometheus.hmmbird.xyz/api/v1/write',
+      flushPeriod: '5s',
+      staleMarkers: true,
+    },
+  },
 };
 
 export function setup() {

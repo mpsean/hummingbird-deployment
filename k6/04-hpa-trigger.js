@@ -70,6 +70,13 @@ export const options = {
     'hpa_errors':              ['rate<0.05'],
     'http_req_failed':         ['rate<0.05'],
   },
+  ext: {
+    prometheusRW: {
+      url: __ENV.PROMETHEUS_URL || 'http://prometheus.hmmbird.xyz/api/v1/write',
+      flushPeriod: '5s',
+      staleMarkers: true,
+    },
+  },
 };
 
 export function setup() {
