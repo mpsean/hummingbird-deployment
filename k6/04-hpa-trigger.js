@@ -43,8 +43,6 @@ const TENANTS = [
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];
 
-const CURRENT_MONTH         = 7;
-const CURRENT_YEAR          = 2024;
 const SERVICE_CHARGE_TOTAL  = 500000; // deterministic ฿500k monthly pool
 
 export const options = {
@@ -97,13 +95,18 @@ export default function (tokens) {
   const roll = Math.random();
   let res;
 
+  // Spread VUs across 24 historical periods to avoid DB deadlocks on concurrent writes
+  const periodIndex = (__VU - 1) % 24;
+  const calcYear    = periodIndex < 12 ? 2024 : 2023;
+  const calcMonth   = (periodIndex % 12) + 1;
+
   if (roll < 0.50) {
     // Payroll calculate — CPU-heavy POST; primary HPA pressure source
     res = http.post(
       `${base}/api/payroll/calculate`,
       JSON.stringify({
-        Month:              CURRENT_MONTH,
-        Year:               CURRENT_YEAR,
+        Month:              calcMonth,
+        Year:               calcYear,
         ServiceChargeTotal: SERVICE_CHARGE_TOTAL,
       }),
       { headers }

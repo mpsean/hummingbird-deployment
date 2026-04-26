@@ -28,8 +28,6 @@ const TENANTS = [
   { slug: 'hotel-e', username: 'hr_admin', password: 'admin123' },
 ];
 
-const CURRENT_MONTH         = 7;
-const CURRENT_YEAR          = 2024;
 const SERVICE_CHARGE_TOTAL  = 500000; // deterministic ฿500k monthly pool
 
 export const options = {
@@ -77,9 +75,15 @@ export default function (tokens) {
   const base = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
+  // Spread VUs across 24 historical periods to avoid DB deadlocks on concurrent writes
+  // to the same (tenant, month, year). 1000 VUs / 24 periods ≈ 42 VUs per period.
+  const periodIndex = (__VU - 1) % 24;
+  const calcYear    = periodIndex < 12 ? 2024 : 2023;
+  const calcMonth   = (periodIndex % 12) + 1;
+
   const payload = JSON.stringify({
-    Month:              CURRENT_MONTH,
-    Year:               CURRENT_YEAR,
+    Month:              calcMonth,
+    Year:               calcYear,
     ServiceChargeTotal: SERVICE_CHARGE_TOTAL,
   });
 
