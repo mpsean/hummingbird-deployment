@@ -75,3 +75,18 @@ spec:
   ports:
     - port: 9090
       targetPort: 9090
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`prometheus.hmmbird.xyz`)
+      kind: Rule
+      services:
+        - name: prometheus
+          port: 9090
