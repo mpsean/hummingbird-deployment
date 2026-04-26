@@ -31,7 +31,7 @@
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
-        "expr": "sum(rate(k6_http_reqs_total{expected_response='false'}[1m])) / sum(rate(k6_http_reqs_total[1m]))",
+        "expr": "k6_http_req_failed_rate",
         "legendFormat": "Error Rate" }] },
 
     { "id": 4, "type": "stat", "title": "API Ready Replicas",
@@ -67,10 +67,10 @@
           { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
         ]}] },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_list_duration{quantile='0.95'}", "legendFormat": "List Employees p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_detail_duration{quantile='0.95'}", "legendFormat": "Get Employee p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_payroll_duration{quantile='0.95'}", "legendFormat": "Payroll Fetch p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_attendance_duration{quantile='0.95'}", "legendFormat": "Attendance p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_list_duration_p95", "legendFormat": "List Employees p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_detail_duration_p95", "legendFormat": "Get Employee p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_payroll_duration_p95", "legendFormat": "Payroll Fetch p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_attendance_duration_p95", "legendFormat": "Attendance p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(300)", "legendFormat": "SLA 300ms" }
       ] },
 
@@ -79,7 +79,7 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.03 }, { "color": "red", "value": 0.05 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors{scenario='ordinary_working_day'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 13, "type": "stat", "title": "00 — HPA Fired? (should be 0)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
@@ -140,9 +140,9 @@
           ]}
         ] },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration{quantile='0.95'}", "legendFormat": "Payroll p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration{quantile='0.50'}", "legendFormat": "Payroll p50" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_http_req_duration{scenario='bulk_payroll',quantile='0.95'}", "legendFormat": "HTTP p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration_p95", "legendFormat": "Payroll p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration_p50", "legendFormat": "Payroll p50" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_http_req_duration_p95", "legendFormat": "HTTP p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(500)", "legendFormat": "SLA 500ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }
       ] },
@@ -159,7 +159,7 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.15 }, { "color": "red", "value": 0.20 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_errors{scenario='bulk_payroll'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 24, "type": "stat", "title": "01 — Peak VUs", "gridPos": { "x": 16, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
@@ -218,8 +218,8 @@
           ]}
         ] },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration{quantile='0.95'}", "legendFormat": "Provision p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration{quantile='0.50'}", "legendFormat": "Provision p50" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p95", "legendFormat": "Provision p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p50", "legendFormat": "Provision p50" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(1000)", "legendFormat": "SLA 1000ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }
       ] },
@@ -229,14 +229,14 @@
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 7000 }, { "color": "red", "value": 10000 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration{quantile='0.95'}", "legendFormat": "p95" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p95", "legendFormat": "p95" }] },
 
     { "id": 33, "type": "stat", "title": "02 — Error Rate (pass < 5%)", "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.03 }, { "color": "red", "value": 0.05 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_errors{scenario='tenant_onboarding'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 34, "type": "stat", "title": "02 — Load-test Namespaces Created", "gridPos": { "x": 16, "y": 39, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
@@ -292,10 +292,10 @@
           ]}
         ] },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration{quantile='0.95'}", "legendFormat": "Create p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration{quantile='0.95'}", "legendFormat": "Delete p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration{quantile='0.50'}", "legendFormat": "Create p50" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration{quantile='0.50'}", "legendFormat": "Delete p50" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration_p95", "legendFormat": "Create p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration_p95", "legendFormat": "Delete p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration_p50", "legendFormat": "Create p50" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration_p50", "legendFormat": "Delete p50" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(400)", "legendFormat": "SLA 400ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }
       ] },
@@ -312,14 +312,14 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.20 }, { "color": "red", "value": 0.30 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors{scenario='seasonal_staff'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 44, "type": "stat", "title": "03 — Error Rate (sustained, after CA)", "gridPos": { "x": 16, "y": 54, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.10 }, { "color": "red", "value": 0.20 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors{scenario='seasonal_staff'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 45, "type": "stat", "title": "03 — Peak VUs", "gridPos": { "x": 20, "y": 54, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
@@ -374,9 +374,9 @@
           ]}
         ] },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_payroll_duration{quantile='0.95'}", "legendFormat": "Payroll p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_list_duration{quantile='0.95'}", "legendFormat": "List p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_attendance_duration{quantile='0.95'}", "legendFormat": "Attendance p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_payroll_duration_p95", "legendFormat": "Payroll p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_list_duration_p95", "legendFormat": "List p95" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_attendance_duration_p95", "legendFormat": "Attendance p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(2000)", "legendFormat": "SLA 2000ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
@@ -404,7 +404,7 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.07 }, { "color": "red", "value": 0.10 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_errors{scenario='hpa_trigger'}", "legendFormat": "Error Rate" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 55, "type": "stat", "title": "04 — Peak RPS", "gridPos": { "x": 20, "y": 69, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
