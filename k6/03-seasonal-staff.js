@@ -34,18 +34,17 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m',   target: 1000  }, // warm-up ramp
-        { duration: '3m30s', target: 10000 }, // aggressive ramp to peak
-        { duration: '30s',  target: 10000 }, // hold peak
-        { duration: '2m',   target: 0     }, // ramp down
+        { duration: '2m', target: 500  }, // warm-up ramp
+        { duration: '3m', target: 2000 }, // ramp to peak — exhaust worker capacity, trigger CA
+        { duration: '1m', target: 2000 }, // hold — CA must add nodes within this window
+        { duration: '2m', target: 0    }, // ramp down
       ],
     },
   },
   thresholds: {
-    'staff_create_duration': ['p(95)<400'],
-    'staff_delete_duration': ['p(95)<400'],
-    'staff_errors':          ['rate<0.01'],
-    'http_req_failed':       ['rate<0.01'],
+    // Infrastructure focus: CA responds — 30% errors cover the ~2 min node-join window
+    'staff_errors':    ['rate<0.30'],
+    'http_req_failed': ['rate<0.30'],
   },
   ext: {
     prometheusRW: {

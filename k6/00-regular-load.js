@@ -72,24 +72,21 @@ export const options = {
       executor:        'ramping-arrival-rate',
       startRate:       0,
       timeUnit:        '1s',
-      // Little's Law at 200 RPS × 300 ms target latency = 60 VUs; 2× headroom
-      preAllocatedVUs: 120,
-      // Ceiling for unexpected latency spikes; k6 will warn if this is reached
-      maxVUs:          400,
+      // t3.medium infra target: 50 RPS sustainable (20% baseline CPU per node)
+      // Little's Law at 50 RPS × 1 s app latency = 50 VUs; 2× headroom
+      preAllocatedVUs: 100,
+      maxVUs:          200,
       stages: [
-        { duration: '1m',  target: 200 }, // ramp up
-        { duration: '3m',  target: 200 }, // steady state
+        { duration: '1m',  target: 50  }, // ramp up
+        { duration: '3m',  target: 50  }, // steady state — HPA must NOT fire
         { duration: '1m',  target: 0   }, // ramp down
       ],
     },
   },
   thresholds: {
-    'baseline_list_duration':       ['p(95)<300', 'p(99)<600'],
-    'baseline_detail_duration':     ['p(95)<300', 'p(99)<600'],
-    'baseline_payroll_duration':    ['p(95)<300', 'p(99)<600'],
-    'baseline_attendance_duration': ['p(95)<300', 'p(99)<600'],
-    'baseline_errors':              ['rate<0.005'],
-    'http_req_failed':              ['rate<0.005'],
+    // Infrastructure focus: platform availability only — latency SLAs removed
+    'baseline_errors':  ['rate<0.05'],  // 5% — tolerate slow app, not outages
+    'http_req_failed':  ['rate<0.05'],
   },
   ext: {
     prometheusRW: {

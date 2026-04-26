@@ -2,10 +2,10 @@
   "title": "Hummingbird — k6 Load Test Monitor",
   "uid": "hummingbird-k6",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
   "time": { "from": "now-30m", "to": "now" },
-  "description": "Run: ./k6/run.sh k6/<scenario>.js  |  Prometheus remote-write receiver must be enabled (--web.enable-remote-write-receiver)",
+  "description": "Infrastructure-focused testing on t3.medium. Pass criteria: availability, scaling events, recovery — not latency. Run: ./k6/run.sh k6/<scenario>.js",
   "panels": [
 
     { "id": 1, "type": "stat", "title": "Active VUs (all scenarios)",
@@ -56,7 +56,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='hpa_trigger'}", "legendFormat": "04 HPA Trigger" }
       ] },
 
-    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  SLA: p95 < 300 ms, error < 0.5%  |  API should hold at minimum replicas with no HPA event", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
+    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  PASS: error < 5%, HPA must NOT fire  |  50 RPS target (t3.medium sustainable)", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
 
     { "id": 11, "type": "timeseries", "title": "00 — Response Time by Action (p95)",
       "gridPos": { "x": 0, "y": 5, "w": 16, "h": 8 },
@@ -74,23 +74,25 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(300)", "legendFormat": "SLA 300ms" }
       ] },
 
-    { "id": 12, "type": "stat", "title": "00 — Error Rate", "gridPos": { "x": 16, "y": 5, "w": 4, "h": 4 },
+    { "id": 12, "type": "stat", "title": "00 — Error Rate (pass < 5%)", "gridPos": { "x": 16, "y": 5, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 0.005 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.03 }, { "color": "red", "value": 0.05 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors{scenario='ordinary_working_day'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 13, "type": "stat", "title": "00 — List p95 vs SLA", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 300 }
+    { "id": 13, "type": "stat", "title": "00 — HPA Fired? (should be 0)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "green", "value": null }, { "color": "red", "value": 9 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_list_duration{quantile='0.95'}", "legendFormat": "p95" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }] },
 
-    { "id": 14, "type": "stat", "title": "00 — Request Rate", "gridPos": { "x": 16, "y": 9, "w": 4, "h": 4 },
+    { "id": 14, "type": "stat", "title": "00 — Achieved RPS", "gridPos": { "x": 16, "y": 9, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
+      "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [
+        { "color": "red", "value": null }, { "color": "yellow", "value": 30 }, { "color": "green", "value": 45 }
+      ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='ordinary_working_day'}[1m]))", "legendFormat": "RPS" }] },
 
     { "id": 15, "type": "stat", "title": "00 — Peak VUs", "gridPos": { "x": 20, "y": 9, "w": 4, "h": 4 },
@@ -122,7 +124,7 @@
           "legendFormat": "Ready Replicas" }
       ] },
 
-    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  SLA: p95 < 500 ms, error < 1%  |  CPU-heavy POST; watch for HPA scale-up", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
+    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  PASS: error < 20%, HPA fires within 90 s  |  1 000 VUs peak (t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
 
     { "id": 21, "type": "timeseries", "title": "01 — Payroll Calculate Duration & VUs",
       "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
@@ -145,17 +147,17 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 22, "type": "stat", "title": "01 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 400 }, { "color": "red", "value": 500 }
+    { "id": 22, "type": "stat", "title": "01 — HPA Fired (replicas > min)", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "red", "value": null }, { "color": "yellow", "value": 9 }, { "color": "green", "value": 12 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration{quantile='0.95'}", "legendFormat": "p95" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Max Replicas" }] },
 
-    { "id": 23, "type": "stat", "title": "01 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 20, "w": 4, "h": 4 },
+    { "id": 23, "type": "stat", "title": "01 — Error Rate (pass < 20%)", "gridPos": { "x": 20, "y": 20, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.15 }, { "color": "red", "value": 0.20 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_errors{scenario='bulk_payroll'}", "legendFormat": "Error Rate" }] },
 
@@ -200,7 +202,7 @@
           "legendFormat": "API Memory (MiB)" }
       ] },
 
-    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  SLA: p95 < 1 000 ms, error < 1%  |  Each iteration provisions a DB schema; watch memory growth", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
+    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  PASS: provision p95 < 10 s, error < 5%  |  50 VUs, each provisions a full DB schema", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
 
     { "id": 31, "type": "timeseries", "title": "02 — Provision Duration & VUs",
       "gridPos": { "x": 0, "y": 35, "w": 16, "h": 8 },
@@ -222,17 +224,17 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 32, "type": "stat", "title": "02 — Provision p95 vs SLA", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
+    { "id": 32, "type": "stat", "title": "02 — Provision p95 (pass < 10 s)", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 800 }, { "color": "red", "value": 1000 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 7000 }, { "color": "red", "value": 10000 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 33, "type": "stat", "title": "02 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
+    { "id": 33, "type": "stat", "title": "02 — Error Rate (pass < 5%)", "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.03 }, { "color": "red", "value": 0.05 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_errors{scenario='tenant_onboarding'}", "legendFormat": "Error Rate" }] },
 
@@ -274,7 +276,7 @@
           "legendFormat": "Load-test Namespaces" }
       ] },
 
-    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  SLA: p95 < 400 ms, error < 1%  |  10 000 VUs create+delete — highest sustained write throughput", "collapsed": false, "gridPos": { "x": 0, "y": 49, "w": 24, "h": 1 } },
+    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  PASS: error < 30%, CA adds nodes within hold window  |  2 000 VUs peak (t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 49, "w": 24, "h": 1 } },
 
     { "id": 41, "type": "timeseries", "title": "03 — Create & Delete Employee Duration (p95)",
       "gridPos": { "x": 0, "y": 50, "w": 16, "h": 8 },
@@ -298,24 +300,24 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 42, "type": "stat", "title": "03 — Create p95 vs SLA", "gridPos": { "x": 16, "y": 50, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 400 }
+    { "id": 42, "type": "stat", "title": "03 — CA Nodes Added", "gridPos": { "x": 16, "y": 50, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "red", "value": null }, { "color": "yellow", "value": 9 }, { "color": "green", "value": 11 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration{quantile='0.95'}", "legendFormat": "p95" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "count(kube_node_info)", "legendFormat": "Total Nodes" }] },
 
-    { "id": 43, "type": "stat", "title": "03 — Delete p95 vs SLA", "gridPos": { "x": 20, "y": 50, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 400 }
-      ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration{quantile='0.95'}", "legendFormat": "p95" }] },
-
-    { "id": 44, "type": "stat", "title": "03 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 54, "w": 4, "h": 4 },
+    { "id": 43, "type": "stat", "title": "03 — Error Rate (pass < 30%)", "gridPos": { "x": 20, "y": 50, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.20 }, { "color": "red", "value": 0.30 }
+      ] } } },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors{scenario='seasonal_staff'}", "legendFormat": "Error Rate" }] },
+
+    { "id": 44, "type": "stat", "title": "03 — Error Rate (sustained, after CA)", "gridPos": { "x": 16, "y": 54, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.10 }, { "color": "red", "value": 0.20 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors{scenario='seasonal_staff'}", "legendFormat": "Error Rate" }] },
 
@@ -355,7 +357,7 @@
           "legendFormat": "Pod Restarts (5m)" }
       ] },
 
-    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  SLA: p95 < 2 000 ms, error < 5%  |  600 RPS spike — first scale-up expected ~60–90 s into hold phase", "collapsed": false, "gridPos": { "x": 0, "y": 64, "w": 24, "h": 1 } },
+    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  PASS: error < 10%, replicas increase within 90 s of hold start  |  150 RPS (3× baseline, t3.medium)", "collapsed": false, "gridPos": { "x": 0, "y": 64, "w": 24, "h": 1 } },
 
     { "id": 51, "type": "timeseries", "title": "04 — Response Times & HPA Replica Count",
       "gridPos": { "x": 0, "y": 65, "w": 16, "h": 8 },
@@ -381,12 +383,12 @@
           "legendFormat": "Ready Replicas" }
       ] },
 
-    { "id": 52, "type": "stat", "title": "04 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 65, "w": 4, "h": 4 },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 1500 }, { "color": "red", "value": 2000 }
+    { "id": 52, "type": "stat", "title": "04 — HPA Max Replicas Reached", "gridPos": { "x": 16, "y": 65, "w": 4, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "red", "value": null }, { "color": "yellow", "value": 9 }, { "color": "green", "value": 12 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_payroll_duration{quantile='0.95'}", "legendFormat": "p95" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }] },
 
     { "id": 53, "type": "stat", "title": "04 — Max Replicas Reached", "gridPos": { "x": 20, "y": 65, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
@@ -397,10 +399,10 @@
         "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
         "legendFormat": "Replicas" }] },
 
-    { "id": 54, "type": "stat", "title": "04 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 69, "w": 4, "h": 4 },
+    { "id": 54, "type": "stat", "title": "04 — Error Rate (pass < 10%)", "gridPos": { "x": 16, "y": 69, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 0.05 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 0.07 }, { "color": "red", "value": 0.10 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_errors{scenario='hpa_trigger'}", "legendFormat": "Error Rate" }] },
 

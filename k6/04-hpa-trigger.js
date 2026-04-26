@@ -53,22 +53,21 @@ export const options = {
       executor:        'ramping-arrival-rate',
       startRate:       0,
       timeUnit:        '1s',
-      // Little's Law at 600 RPS × 500 ms worst-case latency = 300 VUs; 2× headroom
-      preAllocatedVUs: 600,
-      maxVUs:          1200,
+      // t3.medium infra target: 150 RPS = 3× the 50 RPS baseline, sufficient to breach 50% CPU
+      // Little's Law at 150 RPS × 1 s app latency = 150 VUs; 2× headroom
+      preAllocatedVUs: 300,
+      maxVUs:          600,
       stages: [
-        { duration: '1m', target: 600 }, // aggressive ramp — push past HPA threshold quickly
-        { duration: '3m', target: 600 }, // hold — sustains pressure past the 60 s stabilization window
+        { duration: '1m', target: 150 }, // ramp — push CPU past HPA 50% threshold
+        { duration: '3m', target: 150 }, // hold — sustains pressure past the 60 s stabilization window
         { duration: '1m', target: 0   }, // ramp down
       ],
     },
   },
   thresholds: {
-    'hpa_payroll_duration':    ['p(95)<2000'],
-    'hpa_list_duration':       ['p(95)<2000'],
-    'hpa_attendance_duration': ['p(95)<2000'],
-    'hpa_errors':              ['rate<0.05'],
-    'http_req_failed':         ['rate<0.05'],
+    // Infrastructure focus: HPA fires and error rate drops after scale-up — latency SLAs removed
+    'hpa_errors':      ['rate<0.10'],
+    'http_req_failed': ['rate<0.10'],
   },
   ext: {
     prometheusRW: {

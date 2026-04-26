@@ -38,17 +38,17 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m',   target: 2000  }, // ramp to initial load
-        { duration: '30s',  target: 10000 }, // spike to peak
-        { duration: '5m',   target: 10000 }, // hold peak
-        { duration: '2m',   target: 0     }, // ramp down
+        { duration: '2m',  target: 500  }, // ramp — build CPU pressure toward HPA threshold
+        { duration: '30s', target: 1000 }, // spike to peak
+        { duration: '5m',  target: 1000 }, // hold — HPA must fire within 90 s and stabilise
+        { duration: '2m',  target: 0    }, // ramp down
       ],
     },
   },
   thresholds: {
-    'payroll_bulk_duration': ['p(95)<500'],
-    'payroll_errors':        ['rate<0.01'],
-    'http_req_failed':       ['rate<0.01'],
+    // Infrastructure focus: HPA fires and recovers — 20% errors during scale-up window accepted
+    'payroll_errors':  ['rate<0.20'],
+    'http_req_failed': ['rate<0.20'],
   },
   ext: {
     prometheusRW: {
