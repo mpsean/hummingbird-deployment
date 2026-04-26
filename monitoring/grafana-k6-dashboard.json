@@ -2,10 +2,10 @@
   "title": "Hummingbird — k6 Load Test Monitor",
   "uid": "hummingbird-k6",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": { "from": "now-30m", "to": "now" },
-  "description": "Run k6 with: K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write k6 run --out=experimental-prometheus-rw k6/<scenario>.js",
+  "description": "Run: ./k6/run.sh k6/<scenario>.js  |  Prometheus remote-write receiver must be enabled (--web.enable-remote-write-receiver)",
   "panels": [
 
     { "id": 1, "type": "stat", "title": "Active VUs (all scenarios)",
@@ -34,11 +34,11 @@
         "expr": "sum(rate(k6_http_reqs_total{expected_response='false'}[1m])) / sum(rate(k6_http_reqs_total[1m]))",
         "legendFormat": "Error Rate" }] },
 
-    { "id": 4, "type": "stat", "title": "API Replicas",
+    { "id": 4, "type": "stat", "title": "API Ready Replicas",
       "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 4 }, { "color": "blue", "value": 8 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "blue", "value": 10 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
         "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
@@ -56,7 +56,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='hpa_trigger'}", "legendFormat": "04 HPA Trigger" }
       ] },
 
-    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  SLA: p95 < 300 ms, error < 0.5%", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
+    { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  SLA: p95 < 300 ms, error < 0.5%  |  API should hold at minimum replicas with no HPA event", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
 
     { "id": 11, "type": "timeseries", "title": "00 — Response Time by Action (p95)",
       "gridPos": { "x": 0, "y": 5, "w": 16, "h": 8 },
@@ -81,7 +81,7 @@
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors{scenario='ordinary_working_day'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 13, "type": "stat", "title": "00 — List Employees p95", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
+    { "id": 13, "type": "stat", "title": "00 — List p95 vs SLA", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 300 }
@@ -98,10 +98,34 @@
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='ordinary_working_day'}", "legendFormat": "VUs" }] },
 
-    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  SLA: p95 < 500 ms, error < 1%", "collapsed": false, "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 } },
+    { "id": 16, "type": "timeseries", "title": "00 — System: API CPU per Pod & Replica Count  (expect: CPU ≤ 40%, replicas stable at minimum)",
+      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 6 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
+          ]},
+          { "matcher": { "id": "byName", "options": "HPA 50% Threshold" }, "properties": [
+            { "id": "custom.lineStyle", "value": { "dash": [6, 3], "fill": "dash" } },
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+          ]}
+        ] },
+      "targets": [
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace='hummingbird-api', container='api'}[2m])) / sum(kube_pod_container_resource_requests{namespace='hummingbird-api', container='api', resource='cpu'}) * 100",
+          "legendFormat": "Avg CPU % (vs requests)" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Ready Replicas" }
+      ] },
+
+    { "id": 20, "type": "row", "title": "Scenario 01 — Payroll Bulk Processing  |  SLA: p95 < 500 ms, error < 1%  |  CPU-heavy POST; watch for HPA scale-up", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
 
     { "id": 21, "type": "timeseries", "title": "01 — Payroll Calculate Duration & VUs",
-      "gridPos": { "x": 0, "y": 14, "w": 16, "h": 8 },
+      "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -121,34 +145,65 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 22, "type": "stat", "title": "01 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 14, "w": 4, "h": 4 },
+    { "id": 22, "type": "stat", "title": "01 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 400 }, { "color": "red", "value": 500 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 23, "type": "stat", "title": "01 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 14, "w": 4, "h": 4 },
+    { "id": 23, "type": "stat", "title": "01 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 20, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_errors{scenario='bulk_payroll'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 24, "type": "stat", "title": "01 — Peak VUs", "gridPos": { "x": 16, "y": 18, "w": 4, "h": 4 },
+    { "id": 24, "type": "stat", "title": "01 — Peak VUs", "gridPos": { "x": 16, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }] },
 
-    { "id": 25, "type": "stat", "title": "01 — Throughput", "gridPos": { "x": 20, "y": 18, "w": 4, "h": 4 },
+    { "id": 25, "type": "stat", "title": "01 — Throughput", "gridPos": { "x": 20, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='bulk_payroll'}[1m]))", "legendFormat": "RPS" }] },
 
-    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  SLA: p95 < 1 000 ms, error < 1%", "collapsed": false, "gridPos": { "x": 0, "y": 22, "w": 24, "h": 1 } },
+    { "id": 26, "type": "timeseries", "title": "01 — System: API CPU % & Replicas  (HPA fires at 50% avg CPU — spike to 10 000 VUs will breach threshold)",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 6 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
+          ]},
+          { "matcher": { "id": "byName", "options": "HPA 50% Threshold" }, "properties": [
+            { "id": "custom.lineStyle", "value": { "dash": [6, 3], "fill": "dash" } },
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+          ]},
+          { "matcher": { "id": "byName", "options": "API Memory (MiB)" }, "properties": [
+            { "id": "unit", "value": "decmbytes" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }
+          ]}
+        ] },
+      "targets": [
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace='hummingbird-api', container='api'}[2m])) / sum(kube_pod_container_resource_requests{namespace='hummingbird-api', container='api', resource='cpu'}) * 100",
+          "legendFormat": "Avg CPU % (vs requests)" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Ready Replicas" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(container_memory_working_set_bytes{namespace='hummingbird-api', container='api'}) / 1024 / 1024",
+          "legendFormat": "API Memory (MiB)" }
+      ] },
+
+    { "id": 30, "type": "row", "title": "Scenario 02 — New Tenant Onboarding  |  SLA: p95 < 1 000 ms, error < 1%  |  Each iteration provisions a DB schema; watch memory growth", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
 
     { "id": 31, "type": "timeseries", "title": "02 — Provision Duration & VUs",
-      "gridPos": { "x": 0, "y": 23, "w": 16, "h": 8 },
+      "gridPos": { "x": 0, "y": 35, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -167,34 +222,62 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 32, "type": "stat", "title": "02 — Provision p95 vs SLA", "gridPos": { "x": 16, "y": 23, "w": 4, "h": 4 },
+    { "id": 32, "type": "stat", "title": "02 — Provision p95 vs SLA", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 800 }, { "color": "red", "value": 1000 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 33, "type": "stat", "title": "02 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 23, "w": 4, "h": 4 },
+    { "id": 33, "type": "stat", "title": "02 — Error Rate vs SLA", "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_errors{scenario='tenant_onboarding'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 34, "type": "stat", "title": "02 — Tenants Registered", "gridPos": { "x": 16, "y": 27, "w": 4, "h": 4 },
+    { "id": 34, "type": "stat", "title": "02 — Load-test Namespaces Created", "gridPos": { "x": 16, "y": 39, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "count(kube_namespace_status_phase{namespace=~'tenant-load-.*', phase='Active'})", "legendFormat": "Namespaces" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
+        "expr": "count(kube_namespace_status_phase{namespace=~'tenant-load-.*', phase='Active'})",
+        "legendFormat": "Namespaces" }] },
 
-    { "id": 35, "type": "stat", "title": "02 — Active VUs", "gridPos": { "x": 20, "y": 27, "w": 4, "h": 4 },
+    { "id": 35, "type": "stat", "title": "02 — Active VUs", "gridPos": { "x": 20, "y": 39, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }] },
 
-    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  SLA: p95 < 400 ms, error < 1%", "collapsed": false, "gridPos": { "x": 0, "y": 31, "w": 24, "h": 1 } },
+    { "id": 36, "type": "timeseries", "title": "02 — System: API Memory Growth & Namespace Count  (schema creation is memory-intensive — each provisioned DB inflates API memory)",
+      "gridPos": { "x": 0, "y": 43, "w": 24, "h": 6 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Load-test Namespaces" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
+          ]},
+          { "matcher": { "id": "byName", "options": "API CPU %" }, "properties": [
+            { "id": "unit", "value": "percent" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+          ]}
+        ] },
+      "targets": [
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(container_memory_working_set_bytes{namespace='hummingbird-api', container='api'}) / 1024 / 1024",
+          "legendFormat": "API Memory (MiB)" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace='hummingbird-api', container='api'}[2m])) / sum(kube_pod_container_resource_requests{namespace='hummingbird-api', container='api', resource='cpu'}) * 100",
+          "legendFormat": "API CPU %" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "count(kube_namespace_status_phase{namespace=~'tenant-load-.*', phase='Active'})",
+          "legendFormat": "Load-test Namespaces" }
+      ] },
+
+    { "id": 40, "type": "row", "title": "Scenario 03 — Seasonal Staff Onboarding/Offboarding  |  SLA: p95 < 400 ms, error < 1%  |  10 000 VUs create+delete — highest sustained write throughput", "collapsed": false, "gridPos": { "x": 0, "y": 49, "w": 24, "h": 1 } },
 
     { "id": 41, "type": "timeseries", "title": "03 — Create & Delete Employee Duration (p95)",
-      "gridPos": { "x": 0, "y": 32, "w": 16, "h": 8 },
+      "gridPos": { "x": 0, "y": 50, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -215,36 +298,67 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }
       ] },
 
-    { "id": 42, "type": "stat", "title": "03 — Create p95 vs SLA", "gridPos": { "x": 16, "y": 32, "w": 4, "h": 4 },
+    { "id": 42, "type": "stat", "title": "03 — Create p95 vs SLA", "gridPos": { "x": 16, "y": 50, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 400 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 43, "type": "stat", "title": "03 — Delete p95 vs SLA", "gridPos": { "x": 20, "y": 32, "w": 4, "h": 4 },
+    { "id": 43, "type": "stat", "title": "03 — Delete p95 vs SLA", "gridPos": { "x": 20, "y": 50, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 400 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 44, "type": "stat", "title": "03 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 36, "w": 4, "h": 4 },
+    { "id": 44, "type": "stat", "title": "03 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 54, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "red", "value": 0.01 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_errors{scenario='seasonal_staff'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 45, "type": "stat", "title": "03 — Peak VUs", "gridPos": { "x": 20, "y": 36, "w": 4, "h": 4 },
+    { "id": 45, "type": "stat", "title": "03 — Peak VUs", "gridPos": { "x": 20, "y": 54, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }] },
 
-    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  SLA: p95 < 2 000 ms, error < 5%", "collapsed": false, "gridPos": { "x": 0, "y": 40, "w": 24, "h": 1 } },
+    { "id": 46, "type": "timeseries", "title": "03 — System: API CPU %, Replicas & Pod Restarts  (rapid create/delete taxes both CPU and database connections; restarts indicate resource pressure)",
+      "gridPos": { "x": 0, "y": 58, "w": 24, "h": 6 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
+          ]},
+          { "matcher": { "id": "byName", "options": "Pod Restarts (5m)" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }, { "id": "custom.drawStyle", "value": "bars" }
+          ]},
+          { "matcher": { "id": "byName", "options": "HPA 50% Threshold" }, "properties": [
+            { "id": "custom.lineStyle", "value": { "dash": [6, 3], "fill": "dash" } },
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+          ]}
+        ] },
+      "targets": [
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace='hummingbird-api', container='api'}[2m])) / sum(kube_pod_container_resource_requests{namespace='hummingbird-api', container='api', resource='cpu'}) * 100",
+          "legendFormat": "Avg CPU % (vs requests)" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Ready Replicas" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace='hummingbird-api', container='api'}[5m]))",
+          "legendFormat": "Pod Restarts (5m)" }
+      ] },
 
-    { "id": 51, "type": "timeseries", "title": "04 — Response Times & HPA Scale Events",
-      "gridPos": { "x": 0, "y": 41, "w": 16, "h": 8 },
+    { "id": 50, "type": "row", "title": "Scenario 04 — HPA Trigger Verification  |  SLA: p95 < 2 000 ms, error < 5%  |  600 RPS spike — first scale-up expected ~60–90 s into hold phase", "collapsed": false, "gridPos": { "x": 0, "y": 64, "w": 24, "h": 1 } },
+
+    { "id": 51, "type": "timeseries", "title": "04 — Response Times & HPA Replica Count",
+      "gridPos": { "x": 0, "y": 65, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -252,8 +366,9 @@
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
             { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
           ]},
-          { "matcher": { "id": "byName", "options": "Replicas" }, "properties": [
-            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" }
+          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]}
         ] },
       "targets": [
@@ -261,34 +376,70 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_list_duration{quantile='0.95'}", "legendFormat": "List p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_attendance_duration{quantile='0.95'}", "legendFormat": "Attendance p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(2000)", "legendFormat": "SLA 2000ms" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Ready Replicas" }
       ] },
 
-    { "id": 52, "type": "stat", "title": "04 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 41, "w": 4, "h": 4 },
+    { "id": 52, "type": "stat", "title": "04 — Payroll p95 vs SLA", "gridPos": { "x": 16, "y": 65, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 1500 }, { "color": "red", "value": 2000 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_payroll_duration{quantile='0.95'}", "legendFormat": "p95" }] },
 
-    { "id": 53, "type": "stat", "title": "04 — HPA Scaled Replicas", "gridPos": { "x": 20, "y": 41, "w": 4, "h": 4 },
+    { "id": 53, "type": "stat", "title": "04 — Max Replicas Reached", "gridPos": { "x": 20, "y": 65, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "blue", "value": 3 }, { "color": "purple", "value": 6 }
       ] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
+        "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
+        "legendFormat": "Replicas" }] },
 
-    { "id": 54, "type": "stat", "title": "04 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 45, "w": 4, "h": 4 },
+    { "id": 54, "type": "stat", "title": "04 — Error Rate vs SLA", "gridPos": { "x": 16, "y": 69, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "red", "value": 0.05 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_errors{scenario='hpa_trigger'}", "legendFormat": "Error Rate" }] },
 
-    { "id": 55, "type": "stat", "title": "04 — Peak RPS", "gridPos": { "x": 20, "y": 45, "w": 4, "h": 4 },
+    { "id": 55, "type": "stat", "title": "04 — Peak RPS", "gridPos": { "x": 20, "y": 69, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='hpa_trigger'}[1m]))", "legendFormat": "RPS" }] }
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='hpa_trigger'}[1m]))", "legendFormat": "RPS" }] },
+
+    { "id": 56, "type": "timeseries", "title": "04 — System: HPA Scale Timeline  (KEY: CPU % breaches 50% → HPA fires → desired replicas climb → latency recovers as new pods become ready)",
+      "gridPos": { "x": 0, "y": 73, "w": 24, "h": 7 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Current Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
+          ]},
+          { "matcher": { "id": "byName", "options": "Desired Replicas" }, "properties": [
+            { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } },
+            { "id": "custom.lineStyle", "value": { "dash": [4, 2], "fill": "dash" } }
+          ]},
+          { "matcher": { "id": "byName", "options": "HPA 50% Threshold" }, "properties": [
+            { "id": "custom.lineStyle", "value": { "dash": [6, 3], "fill": "dash" } },
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }
+          ]}
+        ] },
+      "targets": [
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace='hummingbird-api', container='api'}[2m])) / sum(kube_pod_container_resource_requests{namespace='hummingbird-api', container='api', resource='cpu'}) * 100",
+          "legendFormat": "Avg CPU % (vs requests)" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Current Replicas" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" },
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}",
+          "legendFormat": "Desired Replicas" }
+      ] }
 
   ]
 }
