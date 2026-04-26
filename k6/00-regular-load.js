@@ -132,22 +132,32 @@ export default function (tokens) {
 
   } else if (roll < 0.65) {
     // View a single employee record — detail drill-down
+    // 404 is expected: random IDs will frequently miss; not an infrastructure failure
     endpoint = 'detail';
-    res = http.get(`${base}/api/personnel/employees/${employeeId}`, { headers, tags: { endpoint } });
+    res = http.get(`${base}/api/personnel/employees/${employeeId}`, {
+      headers, tags: { endpoint },
+      responseCallback: http.expectedStatuses(200, 404),
+    });
     check(res, { 'get employee 200/404': (r) => r.status === 200 || r.status === 404 });
     detailDuration.add(res.timings.duration);
 
   } else if (roll < 0.85) {
-    // Payroll fetch — HR/finance reviewing the closed month's payroll
+    // Payroll fetch — 404/empty is expected when payroll has not been calculated yet
     endpoint = 'payroll';
-    res = http.get(`${base}/api/payroll/${year}/${month}`, { headers, tags: { endpoint } });
+    res = http.get(`${base}/api/payroll/${year}/${month}`, {
+      headers, tags: { endpoint },
+      responseCallback: http.expectedStatuses(200, 404, 204),
+    });
     check(res, { 'payroll fetch 200': (r) => r.status === 200 });
     payrollDuration.add(res.timings.duration);
 
   } else {
     // Attendance summary — HR daily roll-up (per-employee totals for the month)
     endpoint = 'attendance';
-    res = http.get(`${base}/api/timeattendance/${year}/${month}/summary`, { headers, tags: { endpoint } });
+    res = http.get(`${base}/api/timeattendance/${year}/${month}/summary`, {
+      headers, tags: { endpoint },
+      responseCallback: http.expectedStatuses(200, 404, 204),
+    });
     check(res, { 'attendance summary 200': (r) => r.status === 200 });
     attendanceDuration.add(res.timings.duration);
   }
@@ -160,15 +170,16 @@ export default function (tokens) {
 export function handleSummary(data) {
   const rows = [];
   for (const [key, metric] of Object.entries(data.metrics)) {
-    const m = key.match(/^baseline_error_breakdown\{(.+)\}$/);
-    if (!m) continue;
-    rows.push({ tags: m[1], count: metric.values.count });
+    // k6 exposes tagged sub-metrics as "name{tag=value,...}" keys
+    if (!key.startsWith('baseline_error_breakdown{')) continue;
+    const count = metric.values ? metric.values.count : 0;
+    if (count > 0) rows.push({ tags: key.replace('baseline_error_breakdown', ''), count });
   }
   rows.sort((a, b) => b.count - a.count);
 
   const lines = ['', '=== Error breakdown (non-2xx by endpoint × kind) ===', ''];
   if (rows.length === 0) {
-    lines.push('  (no errors recorded)');
+    lines.push('  (no non-5xx errors — check http_req_failed for 4xx from missing data)');
   } else {
     for (const r of rows) {
       lines.push(`  ${String(r.count).padStart(7)}  ${r.tags}`);

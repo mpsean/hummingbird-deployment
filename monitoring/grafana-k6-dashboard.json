@@ -31,7 +31,7 @@
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
-        "expr": "k6_http_req_failed_rate",
+        "expr": "avg(k6_http_req_failed_rate)",
         "legendFormat": "Error Rate" }] },
 
     { "id": 4, "type": "stat", "title": "API Ready Replicas",
