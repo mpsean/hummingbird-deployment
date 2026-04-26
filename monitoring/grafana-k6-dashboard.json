@@ -49,11 +49,8 @@
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } } },
       "targets": [
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='ordinary_working_day'}", "legendFormat": "00 Baseline" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "01 Payroll Bulk" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "02 Onboarding" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "03 Seasonal Staff" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='hpa_trigger'}", "legendFormat": "04 HPA Trigger" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "Active VUs" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus_max", "legendFormat": "Max VUs (scenario ceiling)" }
       ] },
 
     { "id": 10, "type": "row", "title": "Scenario 00 — Regular Load (Baseline)  |  PASS: error < 5%, HPA must NOT fire  |  50 RPS target (t3.medium sustainable)", "collapsed": false, "gridPos": { "x": 0, "y": 4, "w": 24, "h": 1 } },
@@ -61,7 +58,7 @@
     { "id": 11, "type": "timeseries", "title": "00 — Response Time by Action (p95)",
       "gridPos": { "x": 0, "y": 5, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [{ "matcher": { "id": "byName", "options": "SLA 300ms" }, "properties": [
           { "id": "custom.lineStyle", "value": { "dash": [8, 4], "fill": "dash" } },
           { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
@@ -71,7 +68,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_detail_duration_p95", "legendFormat": "Get Employee p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_payroll_duration_p95", "legendFormat": "Payroll Fetch p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_attendance_duration_p95", "legendFormat": "Attendance p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(300)", "legendFormat": "SLA 300ms" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(0.3)", "legendFormat": "SLA 300ms" }
       ] },
 
     { "id": 12, "type": "stat", "title": "00 — Error Rate (pass < 5%)", "gridPos": { "x": 16, "y": 5, "w": 4, "h": 4 },
@@ -98,7 +95,7 @@
     { "id": 15, "type": "stat", "title": "00 — Peak VUs", "gridPos": { "x": 20, "y": 9, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='ordinary_working_day'}", "legendFormat": "VUs" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
     { "id": 16, "type": "timeseries", "title": "00 — System: API CPU per Pod & Replica Count  (expect: CPU ≤ 40%, replicas stable at minimum)",
       "gridPos": { "x": 0, "y": 13, "w": 24, "h": 6 },
@@ -129,7 +126,7 @@
     { "id": 21, "type": "timeseries", "title": "01 — Payroll Calculate Duration & VUs",
       "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
           { "matcher": { "id": "byName", "options": "SLA 500ms" }, "properties": [
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
@@ -143,8 +140,8 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration_p95", "legendFormat": "Payroll p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_bulk_duration_p50", "legendFormat": "Payroll p50" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_http_req_duration_p95", "legendFormat": "HTTP p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(500)", "legendFormat": "SLA 500ms" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(0.5)", "legendFormat": "SLA 500ms" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }
       ] },
 
     { "id": 22, "type": "stat", "title": "01 — HPA Fired (replicas > min)", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
@@ -164,7 +161,7 @@
     { "id": 24, "type": "stat", "title": "01 — Peak VUs", "gridPos": { "x": 16, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='bulk_payroll'}", "legendFormat": "VUs" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
     { "id": 25, "type": "stat", "title": "01 — Throughput", "gridPos": { "x": 20, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
@@ -207,7 +204,7 @@
     { "id": 31, "type": "timeseries", "title": "02 — Provision Duration & VUs",
       "gridPos": { "x": 0, "y": 35, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
           { "matcher": { "id": "byName", "options": "SLA 1000ms" }, "properties": [
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
@@ -220,14 +217,14 @@
       "targets": [
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p95", "legendFormat": "Provision p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p50", "legendFormat": "Provision p50" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(1000)", "legendFormat": "SLA 1000ms" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(1)", "legendFormat": "SLA 1000ms" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }
       ] },
 
     { "id": 32, "type": "stat", "title": "02 — Provision p95 (pass < 10 s)", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
-      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "yellow", "value": 7000 }, { "color": "red", "value": 10000 }
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
+        { "color": "green", "value": null }, { "color": "yellow", "value": 7 }, { "color": "red", "value": 10 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_provision_duration_p95", "legendFormat": "p95" }] },
 
@@ -248,7 +245,7 @@
     { "id": 35, "type": "stat", "title": "02 — Active VUs", "gridPos": { "x": 20, "y": 39, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='tenant_onboarding'}", "legendFormat": "VUs" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
     { "id": 36, "type": "timeseries", "title": "02 — System: API Memory Growth & Namespace Count  (schema creation is memory-intensive — each provisioned DB inflates API memory)",
       "gridPos": { "x": 0, "y": 43, "w": 24, "h": 6 },
@@ -281,7 +278,7 @@
     { "id": 41, "type": "timeseries", "title": "03 — Create & Delete Employee Duration (p95)",
       "gridPos": { "x": 0, "y": 50, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
           { "matcher": { "id": "byName", "options": "SLA 400ms" }, "properties": [
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
@@ -296,8 +293,8 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration_p95", "legendFormat": "Delete p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_create_duration_p50", "legendFormat": "Create p50" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_staff_delete_duration_p50", "legendFormat": "Delete p50" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(400)", "legendFormat": "SLA 400ms" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(0.4)", "legendFormat": "SLA 400ms" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }
       ] },
 
     { "id": 42, "type": "stat", "title": "03 — CA Nodes Added", "gridPos": { "x": 16, "y": 50, "w": 4, "h": 4 },
@@ -324,7 +321,7 @@
     { "id": 45, "type": "stat", "title": "03 — Peak VUs", "gridPos": { "x": 20, "y": 54, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus{scenario='seasonal_staff'}", "legendFormat": "VUs" }] },
+      "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
     { "id": 46, "type": "timeseries", "title": "03 — System: API CPU %, Replicas & Pod Restarts  (rapid create/delete taxes both CPU and database connections; restarts indicate resource pressure)",
       "gridPos": { "x": 0, "y": 58, "w": 24, "h": 6 },
@@ -362,7 +359,7 @@
     { "id": 51, "type": "timeseries", "title": "04 — Response Times & HPA Replica Count",
       "gridPos": { "x": 0, "y": 65, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
           { "matcher": { "id": "byName", "options": "SLA 2000ms" }, "properties": [
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
@@ -377,7 +374,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_payroll_duration_p95", "legendFormat": "Payroll p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_list_duration_p95", "legendFormat": "List p95" },
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_hpa_attendance_duration_p95", "legendFormat": "Attendance p95" },
-        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(2000)", "legendFormat": "SLA 2000ms" },
+        { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(2)", "legendFormat": "SLA 2000ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
           "legendFormat": "Ready Replicas" }
