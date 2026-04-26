@@ -32,7 +32,8 @@
 
 import http from 'k6/http';
 import { check } from 'k6';
-import { Rate, Trend } from 'k6/metrics';
+import { Counter, Rate, Trend } from 'k6/metrics';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 import { loginTenant, tenantApiBase, tenantHeaders } from './lib/auth.js';
 
 // Per-action duration trends for targeted SLO analysis
@@ -44,6 +45,18 @@ const attendanceDuration = new Trend('baseline_attendance_duration', true);
 // Count only server-side failures (5xx / connection errors); 4xx are expected
 // for random employee IDs and are not application errors.
 const errorRate = new Rate('baseline_errors');
+
+// Tagged counter for the end-of-test breakdown (endpoint × failure kind).
+// Buckets every non-2xx response so the summary surfaces 4xx noise too.
+const errorBreakdown = new Counter('baseline_error_breakdown');
+
+function recordBreakdown(res, endpoint) {
+  if (res.status >= 200 && res.status < 300) return;
+  const kind = res.status === 0
+    ? `net:${res.error_code || 'unknown'}`
+    : `http:${res.status}`;
+  errorBreakdown.add(1, { endpoint, kind });
+}
 
 const TENANTS = [
   { slug: 'hotel-a', username: 'hr_admin', password: 'admin123' },
@@ -104,32 +117,62 @@ export default function (tokens) {
 
   const roll = Math.random();
   let res;
+  let endpoint;
 
   if (roll < 0.40) {
     // List employees — most frequent HR browsing action
-    res = http.get(`${base}/api/personnel/employees`, { headers });
+    endpoint = 'list';
+    res = http.get(`${base}/api/personnel/employees`, { headers, tags: { endpoint } });
     check(res, { 'list employees 200': (r) => r.status === 200 });
     listDuration.add(res.timings.duration);
 
   } else if (roll < 0.65) {
     // View a single employee record — detail drill-down
-    res = http.get(`${base}/api/personnel/employees/${employeeId}`, { headers });
+    endpoint = 'detail';
+    res = http.get(`${base}/api/personnel/employees/${employeeId}`, { headers, tags: { endpoint } });
     check(res, { 'get employee 200/404': (r) => r.status === 200 || r.status === 404 });
     detailDuration.add(res.timings.duration);
 
   } else if (roll < 0.85) {
     // Payroll fetch — HR/finance reviewing the closed month's payroll
-    res = http.get(`${base}/api/payroll/${year}/${month}`, { headers });
+    endpoint = 'payroll';
+    res = http.get(`${base}/api/payroll/${year}/${month}`, { headers, tags: { endpoint } });
     check(res, { 'payroll fetch 200': (r) => r.status === 200 });
     payrollDuration.add(res.timings.duration);
 
   } else {
     // Attendance summary — HR daily roll-up (per-employee totals for the month)
-    res = http.get(`${base}/api/timeattendance/${year}/${month}/summary`, { headers });
+    endpoint = 'attendance';
+    res = http.get(`${base}/api/timeattendance/${year}/${month}/summary`, { headers, tags: { endpoint } });
     check(res, { 'attendance summary 200': (r) => r.status === 200 });
     attendanceDuration.add(res.timings.duration);
   }
 
   // A 5xx or network failure counts as an application error
   errorRate.add(res.status === 0 || res.status >= 500 ? 1 : 0);
+  recordBreakdown(res, endpoint);
+}
+
+export function handleSummary(data) {
+  const rows = [];
+  for (const [key, metric] of Object.entries(data.metrics)) {
+    const m = key.match(/^baseline_error_breakdown\{(.+)\}$/);
+    if (!m) continue;
+    rows.push({ tags: m[1], count: metric.values.count });
+  }
+  rows.sort((a, b) => b.count - a.count);
+
+  const lines = ['', '=== Error breakdown (non-2xx by endpoint × kind) ===', ''];
+  if (rows.length === 0) {
+    lines.push('  (no errors recorded)');
+  } else {
+    for (const r of rows) {
+      lines.push(`  ${String(r.count).padStart(7)}  ${r.tags}`);
+    }
+  }
+  lines.push('');
+
+  return {
+    stdout: textSummary(data, { indent: ' ', enableColors: true }) + lines.join('\n'),
+  };
 }
