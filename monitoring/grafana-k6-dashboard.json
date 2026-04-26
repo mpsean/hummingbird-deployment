@@ -78,10 +78,10 @@
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors_rate", "legendFormat": "Error Rate" }] },
 
-    { "id": 13, "type": "stat", "title": "00 — HPA Fired? (should be 0)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
+    { "id": 13, "type": "stat", "title": "00 — API Replicas (green = at min 8, HPA not fired)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
-        { "color": "green", "value": null }, { "color": "red", "value": 9 }
+        { "color": "green", "value": null }, { "color": "yellow", "value": 9 }, { "color": "red", "value": 12 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }] },
 
