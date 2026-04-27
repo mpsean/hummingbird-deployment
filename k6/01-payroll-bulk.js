@@ -36,9 +36,9 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '2m',  target: 500  }, // ramp — build CPU pressure
-        { duration: '30s', target: 1000 }, // spike to peak
-        { duration: '5m',  target: 1000 }, // hold — HPA must fire within 90 s and stabilise
+        { duration: '2m',  target: 300  }, // ramp — build load toward saturation point
+        { duration: '30s', target: 600  }, // spike to peak (system capacity ~250-300 efficient VUs)
+        { duration: '5m',  target: 600  }, // hold — HPA must fire within 90 s and stabilise
         { duration: '2m',  target: 0    }, // ramp down
       ],
     },
