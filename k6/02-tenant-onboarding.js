@@ -18,6 +18,8 @@ import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import { API_ADMIN_KEY } from './lib/auth.js';
 
+/* global __VU, __ITER */
+
 const errorRate    = new Rate('onboarding_errors');
 const provisionDur = new Trend('onboarding_provision_duration', true);
 
@@ -28,11 +30,10 @@ const ADMIN_HEADERS = {
   'X-Admin-Key': API_ADMIN_KEY,
 };
 
-// Run-scoped unique subdomains — base36 timestamp prefix ensures each test run
-// creates fresh tenants and never conflicts with leftovers from previous runs.
-const RUN_ID = Date.now().toString(36).slice(-5); // e.g. "m3q7k"
-function tenantSubdomain() {
-  return `t${RUN_ID}-${__VU}-${__ITER}`;
+// RUN_ID is generated in setup() so it is consistent across all VU isolates
+// and available to teardown() for targeted cleanup.
+function tenantSubdomain(runId) {
+  return `t${runId}-${__VU}-${__ITER}`;
 }
 
 export const options = {
@@ -59,8 +60,14 @@ export const options = {
   },
 };
 
-export default function () {
-  const subdomain = tenantSubdomain();
+export function setup() {
+  const runId = Date.now().toString(36).slice(-5);
+  console.log(`[setup] Run ID: ${runId} — tenants will be prefixed with t${runId}-`);
+  return { runId };
+}
+
+export default function (data) {
+  const subdomain = tenantSubdomain(data.runId);
 
   // Register tenant — API creates the tenant DB synchronously
   const registerRes = http.post(
@@ -77,4 +84,37 @@ export default function () {
   errorRate.add(!registered);
 
   sleep(3);
+}
+
+export function teardown(data) {
+  const { runId } = data;
+  console.log(`[teardown] Cleaning up tenants created with prefix t${runId}-`);
+
+  // List all tenants and filter to this run's subdomains
+  const listRes = http.get(`${API_BASE}/api/admin/tenants`, { headers: ADMIN_HEADERS });
+  if (listRes.status !== 200) {
+    console.error(`[teardown] Failed to list tenants (${listRes.status}) — manual cleanup may be required`);
+    return;
+  }
+
+  const all = JSON.parse(listRes.body);
+  const mine = all.filter((t) => t.subdomain.startsWith(`t${runId}-`));
+  console.log(`[teardown] Found ${mine.length} tenants to delete`);
+
+  let deleted = 0;
+  let failed = 0;
+  for (const tenant of mine) {
+    const delRes = http.del(
+      `${API_BASE}/api/admin/tenants/${tenant.id}`,
+      null,
+      { headers: ADMIN_HEADERS }
+    );
+    if (delRes.status === 200 || delRes.status === 204 || delRes.status === 404) {
+      deleted++;
+    } else {
+      console.warn(`[teardown] Could not delete ${tenant.subdomain} (id=${tenant.id}): HTTP ${delRes.status}`);
+      failed++;
+    }
+  }
+  console.log(`[teardown] Done — deleted ${deleted}, failed ${failed}`);
 }
