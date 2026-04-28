@@ -89,7 +89,7 @@ export const options = {
       executor:    'per-vu-iterations',
       vus:         1,
       iterations:  HOTELS.length,   // one per hotel in the dataset
-      maxDuration: '90m',
+      maxDuration: '10m',
     },
   },
   thresholds: {
@@ -159,12 +159,21 @@ function provisionTenant(slug, name) {
   }
   const token = JSON.parse(regRes.body).token;
 
-  // 1d. Probe ingress until 200 (Traefik route reload)
+  // 1d. Probe ingress until 200 (Traefik route reload). Treat all status
+  // codes as expected — the probe loop intentionally retries through
+  // 502/503/404 while routing settles, so those shouldn't count toward
+  // http_req_failed.
   const base    = tenantApiBase(slug);
   const headers = tenantHeaders(slug, token);
+  const probeOpts = {
+    headers,
+    timeout: '5s',
+    responseCallback: http.expectedStatuses({ min: 100, max: 599 }),
+    tags: { probe: 'ingress' },
+  };
   let ready = false;
   for (let i = 0; i < 30; i++) {
-    const probe = http.get(`${base}/api/personnel/positions`, { headers, timeout: '5s' });
+    const probe = http.get(`${base}/api/personnel/positions`, probeOpts);
     if (probe.status === 200) { ready = true; break; }
     sleep(2);
   }
