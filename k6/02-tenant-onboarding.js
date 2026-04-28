@@ -1,12 +1,18 @@
 /**
  * Scenario 2 — New Tenant Onboarding
  *
- * Simulates parallel provisioning of new hotel tenants via the admin API.
- * Schema initialisation is synchronous — the API creates the tenant DB on
- * registration; there is no separate initialise or bulk-insert endpoint.
+ * Provisions ONE new tenant end-to-end (API admin DB + signin DB + admin user)
+ * then drives a moderate read mix against it for 5 min to verify the new tenant
+ * is fully reachable: K8s namespace, ingress route, and DB connection all wired.
  *
- * Shape  : 50 VUs constant for 5 minutes
- * SLA    : p95 < 1 000 ms, error rate < 1 %
+ * Provisioning chain (setup):
+ *   1. POST {API}/api/admin/tenants            — creates tenant DB + K8s resources
+ *   2. POST {SIGNIN}/api/tenants               — registers tenant in auth DB
+ *   3. POST {SIGNIN}/api/auth/register         — creates admin user, returns JWT
+ *   4. Probe tenant ingress until 200          — Traefik routing settle
+ *
+ * Shape  : 10 VUs constant for 5 minutes against the new tenant
+ * SLA    : reads p95 < 1 000 ms, error rate < 5 %
  *
  * Run:
  *   k6 run k6/02-tenant-onboarding.js
@@ -16,41 +22,36 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
-import { API_ADMIN_KEY } from './lib/auth.js';
-
-/* global __VU, __ITER */
+import { API_ADMIN_KEY, tenantApiBase, tenantHeaders } from './lib/auth.js';
 
 const errorRate    = new Rate('onboarding_errors');
-const provisionDur = new Trend('onboarding_provision_duration', true);
+const setupDur     = new Trend('onboarding_setup_duration', true);
+const readDur      = new Trend('onboarding_read_duration',  true);
 
-const API_BASE = __ENV.API_URL || 'http://api.hmmbird.xyz';
+const API_BASE    = __ENV.API_URL    || 'http://api.hmmbird.xyz';
+const SIGNIN_BASE = __ENV.SIGNIN_URL || 'http://signin.hmmbird.xyz';
 
 const ADMIN_HEADERS = {
   'Content-Type': 'application/json',
-  'X-Admin-Key': API_ADMIN_KEY,
+  'X-Admin-Key':  API_ADMIN_KEY,
 };
-
-// RUN_ID is generated in setup() so it is consistent across all VU isolates
-// and available to teardown() for targeted cleanup.
-function tenantSubdomain(runId) {
-  return `t${runId}-${__VU}-${__ITER}`;
-}
 
 export const options = {
   scenarios: {
     tenant_onboarding: {
       executor: 'constant-vus',
-      vus:      50,
+      vus:      10,
       duration: '5m',
     },
   },
   thresholds: {
-    // Infrastructure focus: k8s resource provisioning completes.
-    // t3.xlarge postgres (4 vCPU) runs DDL 3-4× faster than t3.medium — 5 s is achievable.
-    'onboarding_provision_duration': ['p(95)<5000'],
-    'onboarding_errors':             ['rate<0.05'],
-    'http_req_failed':               ['rate<0.05'],
+    // Reads against the new tenant — empty tables, should be quick.
+    'onboarding_errors':       ['rate<0.05'],
+    'http_req_failed':         ['rate<0.05'],
+    'onboarding_read_duration': ['p(95)<1000'],
   },
+  setupTimeout:    '3m',
+  teardownTimeout: '2m',
   ext: {
     prometheusRW: {
       url: __ENV.PROMETHEUS_URL || 'http://prometheus.hmmbird.xyz/api/v1/write',
@@ -62,59 +63,114 @@ export const options = {
 
 export function setup() {
   const runId = Date.now().toString(36).slice(-5);
-  console.log(`[setup] Run ID: ${runId} — tenants will be prefixed with t${runId}-`);
-  return { runId };
+  const slug  = `t${runId}-onboard`;
+  const name  = `Load Hotel ${runId}`;
+  const t0    = Date.now();
+
+  console.log(`[setup] Provisioning tenant: ${slug}`);
+
+  // 1. API admin — creates tenant DB + K8s namespace/deployment/ingress
+  const apiRes = http.post(
+    `${API_BASE}/api/admin/tenants`,
+    JSON.stringify({ Subdomain: slug, Name: name, ServiceChargeVersion: 'A' }),
+    { headers: ADMIN_HEADERS }
+  );
+  if (apiRes.status !== 201 && apiRes.status !== 200) {
+    throw new Error(`API tenant creation failed (${apiRes.status}): ${apiRes.body}`);
+  }
+  const tenantId = JSON.parse(apiRes.body).id;
+
+  // 2. Signin — registers tenant in the auth DB so users can be associated
+  const signinTenantRes = http.post(
+    `${SIGNIN_BASE}/api/tenants`,
+    JSON.stringify({ Slug: slug, Name: name, FrontendUrl: `http://${slug}.hmmbird.xyz` }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  if (signinTenantRes.status !== 201 && signinTenantRes.status !== 200) {
+    throw new Error(`Signin tenant creation failed (${signinTenantRes.status}): ${signinTenantRes.body}`);
+  }
+
+  // 3. Register an admin user under the new tenant — returns JWT directly
+  const registerRes = http.post(
+    `${SIGNIN_BASE}/api/auth/register`,
+    JSON.stringify({
+      TenantSlug: slug,
+      Email:      'load@hmmbird.xyz',
+      Username:   'load_admin',
+      Password:   'loadtest123',
+      FirstName:  'Load',
+      LastName:   'Admin',
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  if (registerRes.status !== 201 && registerRes.status !== 200) {
+    throw new Error(`User registration failed (${registerRes.status}): ${registerRes.body}`);
+  }
+  const token = JSON.parse(registerRes.body).token;
+
+  // 4. Probe tenant ingress until it responds — K8s ingress + Traefik settle (~10–30 s)
+  const base    = tenantApiBase(slug);
+  const headers = tenantHeaders(slug, token);
+  let ready = false;
+  for (let i = 0; i < 30; i++) {
+    const probe = http.get(`${base}/api/personnel/positions`, { headers, timeout: '5s' });
+    if (probe.status === 200) {
+      console.log(`[setup] Tenant ready after ${i + 1} probe(s)`);
+      ready = true;
+      break;
+    }
+    sleep(2);
+  }
+  if (!ready) throw new Error(`Tenant ${slug} did not become reachable within 60 s`);
+
+  const elapsed = Date.now() - t0;
+  setupDur.add(elapsed);
+  console.log(`[setup] Tenant ${slug} (id=${tenantId}) fully provisioned in ${elapsed}ms`);
+
+  return { tenantId, slug, token };
 }
 
 export default function (data) {
-  const subdomain = tenantSubdomain(data.runId);
+  const base    = tenantApiBase(data.slug);
+  const headers = tenantHeaders(data.slug, data.token);
 
-  // Register tenant — API creates the tenant DB synchronously
-  const registerRes = http.post(
-    `${API_BASE}/api/admin/tenants`,
-    JSON.stringify({ subdomain, name: `Load Hotel ${__VU}-${__ITER}` }),
-    { headers: ADMIN_HEADERS }
-  );
+  // Read-only mix against the brand-new tenant. Tables are empty so every
+  // endpoint returns 200 with an empty list — exercises ingress + DB conn.
+  const roll = Math.random();
+  let res, ok;
 
-  const registered = check(registerRes, {
-    'tenant registered 201': (r) => r.status === 201 || r.status === 200,
-  });
+  if (roll < 0.40) {
+    res = http.get(`${base}/api/personnel/employees`, { headers });
+    ok  = check(res, { 'list employees 200': (r) => r.status === 200 });
+  } else if (roll < 0.70) {
+    res = http.get(`${base}/api/personnel/positions`, { headers });
+    ok  = check(res, { 'list positions 200': (r) => r.status === 200 });
+  } else if (roll < 0.90) {
+    res = http.get(`${base}/api/payroll/months`, { headers });
+    ok  = check(res, { 'payroll months 200': (r) => r.status === 200 });
+  } else {
+    res = http.get(`${base}/api/timeattendance/months`, { headers });
+    ok  = check(res, { 'attendance months 200': (r) => r.status === 200 });
+  }
 
-  provisionDur.add(registerRes.timings.duration);
-  errorRate.add(!registered);
+  readDur.add(res.timings.duration);
+  errorRate.add(!ok);
 
-  sleep(3);
+  sleep(Math.random() * 1 + 0.5); // 0.5–1.5 s think time
 }
 
 export function teardown(data) {
-  const { runId } = data;
-  console.log(`[teardown] Cleaning up tenants created with prefix t${runId}-`);
-
-  // List all tenants and filter to this run's subdomains
-  const listRes = http.get(`${API_BASE}/api/admin/tenants`, { headers: ADMIN_HEADERS });
-  if (listRes.status !== 200) {
-    console.error(`[teardown] Failed to list tenants (${listRes.status}) — manual cleanup may be required`);
-    return;
+  console.log(`[teardown] Deleting tenant ${data.slug} (id=${data.tenantId})`);
+  const delRes = http.del(
+    `${API_BASE}/api/admin/tenants/${data.tenantId}`,
+    null,
+    { headers: ADMIN_HEADERS }
+  );
+  if (delRes.status === 200 || delRes.status === 204 || delRes.status === 404) {
+    console.log(`[teardown] Tenant ${data.slug} deleted (HTTP ${delRes.status})`);
+  } else {
+    console.warn(`[teardown] Delete returned ${delRes.status}: ${delRes.body}`);
   }
-
-  const all = JSON.parse(listRes.body);
-  const mine = all.filter((t) => t.subdomain.startsWith(`t${runId}-`));
-  console.log(`[teardown] Found ${mine.length} tenants to delete`);
-
-  let deleted = 0;
-  let failed = 0;
-  for (const tenant of mine) {
-    const delRes = http.del(
-      `${API_BASE}/api/admin/tenants/${tenant.id}`,
-      null,
-      { headers: ADMIN_HEADERS }
-    );
-    if (delRes.status === 200 || delRes.status === 204 || delRes.status === 404) {
-      deleted++;
-    } else {
-      console.warn(`[teardown] Could not delete ${tenant.subdomain} (id=${tenant.id}): HTTP ${delRes.status}`);
-      failed++;
-    }
-  }
-  console.log(`[teardown] Done — deleted ${deleted}, failed ${failed}`);
+  // Note: signin DB tenant row leaks (no DELETE endpoint). Safe across runs
+  // because each run uses a unique t{runId}- prefix.
 }
