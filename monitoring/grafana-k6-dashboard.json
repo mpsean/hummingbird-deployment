@@ -34,7 +34,7 @@
         "expr": "avg(k6_http_req_failed_rate)",
         "legendFormat": "Error Rate" }] },
 
-    { "id": 4, "type": "stat", "title": "API Ready Replicas",
+    { "id": 4, "type": "stat", "title": "API Ready Pods",
       "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [
@@ -78,7 +78,7 @@
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_baseline_errors_rate", "legendFormat": "Error Rate" }] },
 
-    { "id": 13, "type": "stat", "title": "00 — API Replicas (live — must stay ≤ 16 during test)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
+    { "id": 13, "type": "stat", "title": "00 — API Pods (live — must stay ≤ 16 during test)", "gridPos": { "x": 20, "y": 5, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 17 }, { "color": "red", "value": 24 }
@@ -97,12 +97,12 @@
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
-    { "id": 16, "type": "timeseries", "title": "00 — System: API CPU per Pod & Replica Count  (expect: CPU ≤ 40%, replicas stable at minimum)",
+    { "id": 16, "type": "timeseries", "title": "00 — System: API CPU per Pod & Replica Count  (expect: CPU ≤ 40%, pods stable at minimum)",
       "gridPos": { "x": 0, "y": 13, "w": 24, "h": 6 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Ready Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]},
@@ -118,7 +118,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Ready Replicas" }
+          "legendFormat": "Ready Pods" }
       ] },
 
     { "id": 20, "type": "row", "title": "Scenario 02 — Payroll Bulk Processing  |  PASS: error < 5%, HPA fires within 90 s  |  1 000 VUs peak", "collapsed": false, "gridPos": { "x": 0, "y": 40, "w": 24, "h": 1 } },
@@ -168,12 +168,12 @@
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='bulk_payroll'}[1m]))", "legendFormat": "RPS" }] },
 
-    { "id": 26, "type": "timeseries", "title": "02 — System: API CPU % & Replicas  (HPA fires at 50% avg CPU — spike to 10 000 VUs will breach threshold)",
+    { "id": 26, "type": "timeseries", "title": "02 — System: API CPU % & Pods  (HPA fires at 50% avg CPU — spike to 10 000 VUs will breach threshold)",
       "gridPos": { "x": 0, "y": 49, "w": 24, "h": 6 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Ready Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]},
@@ -193,7 +193,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Ready Replicas" },
+          "legendFormat": "Ready Pods" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "sum(container_memory_working_set_bytes{namespace='hummingbird-api', container='api'}) / 1024 / 1024",
           "legendFormat": "API Memory (MiB)" }
@@ -335,7 +335,7 @@
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Ready Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]},
@@ -355,7 +355,7 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Ready Replicas" },
+          "legendFormat": "Ready Pods" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace='hummingbird-api', container='api'}[5m]))",
           "legendFormat": "Pod Restarts (5m)" }
@@ -372,7 +372,7 @@
             { "id": "custom.lineStyle", "value": { "dash": [8,4], "fill": "dash" } },
             { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
           ]},
-          { "matcher": { "id": "byName", "options": "Ready Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Ready Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]}
@@ -384,24 +384,24 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(2)", "legendFormat": "SLA 2000ms" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Ready Replicas" }
+          "legendFormat": "Ready Pods" }
       ] },
 
-    { "id": 52, "type": "stat", "title": "04 — HPA Max Replicas Reached", "gridPos": { "x": 16, "y": 71, "w": 4, "h": 4 },
+    { "id": 52, "type": "stat", "title": "04 — HPA Max Pods Reached", "gridPos": { "x": 16, "y": 71, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "red", "value": null }, { "color": "yellow", "value": 9 }, { "color": "green", "value": 12 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Replicas" }] },
 
-    { "id": 53, "type": "stat", "title": "04 — Max Replicas Reached", "gridPos": { "x": 20, "y": 71, "w": 4, "h": 4 },
+    { "id": 53, "type": "stat", "title": "04 — Max Pods Reached", "gridPos": { "x": 20, "y": 71, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "blue", "value": 3 }, { "color": "purple", "value": 6 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" },
         "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}",
-        "legendFormat": "Replicas" }] },
+        "legendFormat": "Ready Pods" }] },
 
     { "id": 54, "type": "stat", "title": "04 — Error Rate (pass < 10%)", "gridPos": { "x": 16, "y": 75, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
@@ -420,11 +420,11 @@
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Current Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Current Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }, { "id": "custom.lineWidth", "value": 3 }
           ]},
-          { "matcher": { "id": "byName", "options": "Desired Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "Desired Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } },
             { "id": "custom.lineStyle", "value": { "dash": [4, 2], "fill": "dash" } }
@@ -441,10 +441,10 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "vector(50)", "legendFormat": "HPA 50% Threshold" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Current Replicas" },
+          "legendFormat": "Current Pods" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "Desired Replicas" }
+          "legendFormat": "Desired Pods" }
       ] },
 
     { "id": 60, "type": "row", "title": "Scenario 05 — Cluster-Autoscaler Trigger  |  PASS: cluster CPU commitment ≥ 100%, ≥1 pod Pending (Insufficient cpu), CA adds a node, Pending → 0 after node Ready  |  800 RPS for 10 min", "collapsed": false, "gridPos": { "x": 0, "y": 86, "w": 24, "h": 1 } },
@@ -506,7 +506,7 @@
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }, { "id": "custom.drawStyle", "value": "bars" }
           ]},
-          { "matcher": { "id": "byName", "options": "API Replicas" }, "properties": [
+          { "matcher": { "id": "byName", "options": "API Ready Pods" }, "properties": [
             { "id": "unit", "value": "short" }, { "id": "custom.axisPlacement", "value": "right" },
             { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }
           ]},
@@ -526,7 +526,7 @@
           "legendFormat": "Pending Pods" },
         { "datasource": { "uid": "PBFA97CFB590B2093" },
           "expr": "kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler='hummingbird-api', namespace='hummingbird-api'}",
-          "legendFormat": "API Replicas" }
+          "legendFormat": "API Ready Pods" }
       ] }
 
   ]
