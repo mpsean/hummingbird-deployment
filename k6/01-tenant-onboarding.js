@@ -1,5 +1,5 @@
 /**
- * Scenario 2 — New Tenant Onboarding (sequential, 5 tenants)
+ * Scenario 1 — New Tenant Onboarding (sequential, 5 tenants)
  *
  * Provisions and seeds 5 brand-new tenants one at a time, each loaded with a
  * realistic dataset from k6/demo-data/dataset_1 (~3 000 employees and
@@ -16,15 +16,16 @@
  *
  * Shape  : 1 VU × 5 sequential iterations (no concurrency)
  *
- * Custom metrics:
+ * Custom metrics (all tagged with tenant={hotel slug} for per-tenant breakdown):
  *   tenant_provision_duration   — step 1 (ms)
  *   tenant_employees_duration   — step 2 (ms)
  *   tenant_attendance_duration  — step 3 (ms)
- *   tenant_completion_duration  — sum of all three (ms)
+ *   tenant_append_duration      — steps 2 + 3 — full data append (ms)
+ *   tenant_completion_duration  — steps 1 + 2 + 3 — full onboarding (ms)
  *
  * Run:
- *   k6 run k6/02-tenant-onboarding.js
- *   k6 run -e ADMIN_KEY=hb-admin-dev-key k6/02-tenant-onboarding.js
+ *   k6 run k6/01-tenant-onboarding.js
+ *   k6 run -e ADMIN_KEY=hb-admin-dev-key k6/01-tenant-onboarding.js
  */
 
 import http from 'k6/http';
@@ -36,6 +37,7 @@ const errorRate         = new Rate('onboarding_errors');
 const provisionDur      = new Trend('tenant_provision_duration',  true);
 const employeesDur      = new Trend('tenant_employees_duration',  true);
 const attendanceDur     = new Trend('tenant_attendance_duration', true);
+const appendDur         = new Trend('tenant_append_duration',     true);  // employees + attendance
 const completionDur     = new Trend('tenant_completion_duration', true);
 
 const API_BASE    = __ENV.API_URL    || 'http://api.hmmbird.xyz';
@@ -223,28 +225,34 @@ export default function (data) {
     errorRate.add(1);
     return;
   }
+  // Tag every duration with the hotel slug — exposed as `tenant=` label in
+  // Prometheus, so the dashboard can render per-tenant bars.
+  const tag = { tenant: hotel.slug };
+
   const provMs = Date.now() - t0;
-  provisionDur.add(provMs);
+  provisionDur.add(provMs, tag);
   console.log(`[iter ${iter}] step 1 (provision) : ${provMs} ms`);
 
   // Step 2 — employees CSV
   const t1 = Date.now();
   if (!uploadEmployees(slug, token, hotel.employeesCsv)) allOk = false;
   const empMs = Date.now() - t1;
-  employeesDur.add(empMs);
+  employeesDur.add(empMs, tag);
   console.log(`[iter ${iter}] step 2 (employees) : ${empMs} ms (${empRows} rows)`);
 
   // Step 3 — attendance CSV
   const t2 = Date.now();
   if (!uploadAttendance(slug, token, hotel.attendanceCsv)) allOk = false;
   const attMs = Date.now() - t2;
-  attendanceDur.add(attMs);
+  attendanceDur.add(attMs, tag);
   console.log(`[iter ${iter}] step 3 (attendance): ${attMs} ms (${attRows} rows)`);
 
   const totalMs = provMs + empMs + attMs;
-  completionDur.add(totalMs);
+  const appendMs = empMs + attMs;
+  completionDur.add(totalMs, tag);
+  appendDur.add(appendMs, tag);
   errorRate.add(!allOk);
-  console.log(`[iter ${iter}] TOTAL completion   : ${totalMs} ms`);
+  console.log(`[iter ${iter}] TOTAL completion   : ${totalMs} ms (append-only ${appendMs} ms)`);
 }
 
 export function teardown(data) {

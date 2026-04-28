@@ -1,5 +1,5 @@
 /**
- * Scenario 1 — Bulk Month-End Payroll Processing
+ * Scenario 2 — Bulk Month-End Payroll Processing
  *
  * Simulates HR administrators across all five tenants simultaneously
  * initiating bulk payroll runs at month-end.
@@ -8,8 +8,8 @@
  * SLA    : p95 < 500 ms, error rate < 1 %
  *
  * Run:
- *   k6 run k6/01-payroll-bulk.js
- *   k6 run -e SIGNIN_URL=http://signin.hmmbird.xyz k6/01-payroll-bulk.js
+ *   k6 run k6/02-payroll-bulk.js
+ *   k6 run -e SIGNIN_URL=http://signin.hmmbird.xyz k6/02-payroll-bulk.js
  */
 
 import http from 'k6/http';

@@ -2,7 +2,7 @@
 # Run any k6 scenario with automatic Prometheus remote write output.
 #
 # Usage:
-#   ./k6/run.sh k6/01-payroll-bulk.js
+#   ./k6/run.sh k6/02-payroll-bulk.js
 #   ./k6/run.sh k6/03-seasonal-staff.js -e SIGNIN_URL=http://signin.hmmbird.xyz
 #   PROMETHEUS_URL=http://prometheus.monitoring.svc:9090/api/v1/write ./k6/run.sh k6/00-regular-load.js
 #
