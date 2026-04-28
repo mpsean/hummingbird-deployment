@@ -121,10 +121,10 @@
           "legendFormat": "Ready Replicas" }
       ] },
 
-    { "id": 20, "type": "row", "title": "Scenario 02 — Payroll Bulk Processing  |  PASS: error < 5%, HPA fires within 90 s  |  1 000 VUs peak", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
+    { "id": 20, "type": "row", "title": "Scenario 02 — Payroll Bulk Processing  |  PASS: error < 5%, HPA fires within 90 s  |  1 000 VUs peak", "collapsed": false, "gridPos": { "x": 0, "y": 40, "w": 24, "h": 1 } },
 
     { "id": 21, "type": "timeseries", "title": "02 — Payroll Calculate Duration & VUs",
-      "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
+      "gridPos": { "x": 0, "y": 41, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -144,32 +144,32 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }
       ] },
 
-    { "id": 22, "type": "stat", "title": "02 — HPA Fired (replicas > min)", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
+    { "id": 22, "type": "stat", "title": "02 — HPA Fired (replicas > min)", "gridPos": { "x": 16, "y": 41, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
         { "color": "red", "value": null }, { "color": "yellow", "value": 9 }, { "color": "green", "value": 12 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "kube_deployment_status_replicas_ready{deployment='hummingbird-api', namespace='hummingbird-api'}", "legendFormat": "Max Replicas" }] },
 
-    { "id": 23, "type": "stat", "title": "02 — Error Rate (pass < 20%)", "gridPos": { "x": 20, "y": 20, "w": 4, "h": 4 },
+    { "id": 23, "type": "stat", "title": "02 — Error Rate (pass < 20%)", "gridPos": { "x": 20, "y": 41, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.15 }, { "color": "red", "value": 0.20 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_payroll_errors_rate", "legendFormat": "Error Rate" }] },
 
-    { "id": 24, "type": "stat", "title": "02 — Peak VUs", "gridPos": { "x": 16, "y": 24, "w": 4, "h": 4 },
+    { "id": 24, "type": "stat", "title": "02 — Peak VUs", "gridPos": { "x": 16, "y": 45, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_vus", "legendFormat": "VUs" }] },
 
-    { "id": 25, "type": "stat", "title": "02 — Throughput", "gridPos": { "x": 20, "y": 24, "w": 4, "h": 4 },
+    { "id": 25, "type": "stat", "title": "02 — Throughput", "gridPos": { "x": 20, "y": 45, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "sum(rate(k6_http_reqs_total{scenario='bulk_payroll'}[1m]))", "legendFormat": "RPS" }] },
 
     { "id": 26, "type": "timeseries", "title": "02 — System: API CPU % & Replicas  (HPA fires at 50% avg CPU — spike to 10 000 VUs will breach threshold)",
-      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 49, "w": 24, "h": 6 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -199,10 +199,10 @@
           "legendFormat": "API Memory (MiB)" }
       ] },
 
-    { "id": 30, "type": "row", "title": "Scenario 01 — New Tenant Onboarding (sequential, 5 tenants)  |  PASS: error < 5%, all 5 tenants complete provisioning + data append  |  1 VU × 5 iterations", "collapsed": false, "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 } },
+    { "id": 30, "type": "row", "title": "Scenario 01 — New Tenant Onboarding (sequential, 5 tenants)  |  PASS: error < 5%, all 5 tenants complete provisioning + data append  |  1 VU × 5 iterations", "collapsed": false, "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
 
     { "id": 31, "type": "timeseries", "title": "01 — Step Durations Over Time (5 sequential tenants — visible as 5 spikes)",
-      "gridPos": { "x": 0, "y": 35, "w": 16, "h": 8 },
+      "gridPos": { "x": 0, "y": 20, "w": 16, "h": 8 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 }, "color": { "mode": "palette-classic" } },
         "overrides": [
@@ -218,28 +218,28 @@
         { "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "avg(k6_tenant_completion_duration_avg)","legendFormat": "Total Completion" }
       ] },
 
-    { "id": 32, "type": "stat", "title": "01 — Avg Provision", "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
+    { "id": 32, "type": "stat", "title": "01 — Avg Provision", "gridPos": { "x": 16, "y": 20, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 60 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "avg(k6_tenant_provision_duration_avg)", "legendFormat": "Provision" }] },
 
-    { "id": 33, "type": "stat", "title": "01 — Avg Append (Emp+Att)", "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
+    { "id": 33, "type": "stat", "title": "01 — Avg Append (Emp+Att)", "gridPos": { "x": 20, "y": 20, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 600 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "avg(k6_tenant_append_duration_avg)", "legendFormat": "Append" }] },
 
-    { "id": 34, "type": "stat", "title": "01 — Avg Total Completion", "gridPos": { "x": 16, "y": 39, "w": 4, "h": 4 },
+    { "id": 34, "type": "stat", "title": "01 — Avg Total Completion", "gridPos": { "x": 16, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 360 }, { "color": "red", "value": 720 }
       ] } } },
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "avg(k6_tenant_completion_duration_avg)", "legendFormat": "Total" }] },
 
-    { "id": 35, "type": "stat", "title": "01 — Error Rate (pass < 5%)", "gridPos": { "x": 20, "y": 39, "w": 4, "h": 4 },
+    { "id": 35, "type": "stat", "title": "01 — Error Rate (pass < 5%)", "gridPos": { "x": 20, "y": 24, "w": 4, "h": 4 },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
       "fieldConfig": { "defaults": { "unit": "percentunit", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 0.03 }, { "color": "red", "value": 0.05 }
@@ -247,7 +247,7 @@
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_onboarding_errors_rate", "legendFormat": "Error Rate" }] },
 
     { "id": 36, "type": "bargauge", "title": "01 — Per-Tenant Provision Time  (just step 1 — DB + K8s namespace + ingress)",
-      "gridPos": { "x": 0, "y": 43, "w": 12, "h": 6 },
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 6 },
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 60 }
@@ -255,7 +255,7 @@
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_tenant_provision_duration_avg", "legendFormat": "{{tenant}}" }] },
 
     { "id": 37, "type": "bargauge", "title": "01 — Per-Tenant Full Completion  (provision + employees + attendance)",
-      "gridPos": { "x": 12, "y": 43, "w": 12, "h": 6 },
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 6 },
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [
         { "color": "green", "value": null }, { "color": "yellow", "value": 360 }, { "color": "red", "value": 720 }
@@ -263,7 +263,7 @@
       "targets": [{ "datasource": { "uid": "PBFA97CFB590B2093" }, "expr": "k6_tenant_completion_duration_avg", "legendFormat": "{{tenant}}" }] },
 
     { "id": 38, "type": "timeseries", "title": "01 — System: API CPU & Memory + Postgres CPU  (provisioning DDL hits postgres; CSV imports stress API memory + DB writes)",
-      "gridPos": { "x": 0, "y": 49, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 34, "w": 24, "h": 6 },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "fieldConfig": { "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 8 }, "color": { "mode": "palette-classic" } },
         "overrides": [
