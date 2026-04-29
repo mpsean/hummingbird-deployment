@@ -7,11 +7,19 @@
  *   load → HPA scales pods → cluster runs out of room → pods go Pending
  *        → CA adds a node → scheduler binds the Pending pods → recovery
  *
- * Shape   : ramp 0 → 800 RPS over 1 min, hold 800 RPS for 10 min, ramp down 1 min
- * Rate    : 800 req/s — well above what 8-replica minReplicas can absorb,
- *           forces HPA to climb toward maxReplicas over several minutes
- * Mix     : 90% payroll calculate (CPU-heavy), 10% list employees
- *           Heavy skew toward compute so per-pod CPU stays pinned at its limit.
+ * Shape   : ramp 0 → 1200 RPS over 30 s, hold 1200 RPS for 2 min, ramp down 30 s (3 min total)
+ * Rate    : 1200 req/s — sized so per-pod CPU stays comfortably above the 50%
+ *           HPA target even after the cluster scales toward maxReplicas, e.g.
+ *           at 16 replicas this is 75 RPS/pod of CPU-heavy work.
+ *
+ * Note on the short hold: 2 min is enough to trigger the CA scale-up event
+ * (HPA hits ceiling → pods Pending → CA logs scale-up), but the new node
+ * typically becomes Ready ~2–3 min after CA fires, which usually lands
+ * AFTER ramp-down. Keep the kubectl watchers running for a few minutes past
+ * test end to capture the "Pending → 0 + new node Ready" half of the chain.
+ * Mix     : 100% payroll calculate (CPU-heavy POST). Every request is the
+ *           expensive code path so per-pod CPU stays pinned above 50% — no
+ *           light reads diluting the CPU profile.
  *
  * Pass criterion — THE test: cluster CPU commitment reaches 100%.
  *
@@ -76,7 +84,6 @@ import { Rate, Trend } from 'k6/metrics';
 import { loginTenant, tenantApiBase, tenantHeaders } from './lib/auth.js';
 
 const payrollDuration = new Trend('ca_payroll_duration', true);
-const listDuration    = new Trend('ca_list_duration',    true);
 const errorRate       = new Rate('ca_errors');
 
 const TENANTS = [
@@ -97,13 +104,13 @@ export const options = {
       executor:        'ramping-arrival-rate',
       startRate:       0,
       timeUnit:        '1s',
-      // Little's Law at 800 RPS × 2 s worst-case latency under stress = 1600 VUs
-      preAllocatedVUs: 1600,
-      maxVUs:          3200,
+      // Little's Law at 1200 RPS × 2 s worst-case latency under stress = 2400 VUs
+      preAllocatedVUs: 2400,
+      maxVUs:          4800,
       stages: [
-        { duration: '1m',  target: 800 }, // ramp up
-        { duration: '10m', target: 800 }, // long hold — gives HPA time to hit ceiling, CA time to react, node time to provision (~3 min)
-        { duration: '1m',  target: 0   }, // ramp down
+        { duration: '30s', target: 1200 }, // ramp up
+        { duration: '2m',  target: 1200 }, // hold — long enough to push HPA to ceiling and fire CA; new-node Ready may land after ramp-down
+        { duration: '30s', target: 0    }, // ramp down
       ],
     },
   },
@@ -138,29 +145,19 @@ export default function (tokens) {
   const base    = tenantApiBase(tenant.slug);
   const headers = tenantHeaders(tenant.slug, token);
 
-  const roll = Math.random();
-  let res;
-
-  if (roll < 0.90) {
-    // Payroll calculate — CPU-heavy POST; drives pods to their CPU limit
-    res = http.post(
-      `${base}/api/payroll/calculate`,
-      JSON.stringify({
-        Month:              CURRENT_MONTH,
-        Year:               CURRENT_YEAR,
-        ServiceChargeTotal: SERVICE_CHARGE_TOTAL,
-      }),
-      { headers }
-    );
-    check(res, { 'payroll calculate 200/202': (r) => r.status === 200 || r.status === 202 });
-    payrollDuration.add(res.timings.duration);
-
-  } else {
-    // List employees — lighter read, keeps the mix realistic
-    res = http.get(`${base}/api/personnel/employees`, { headers });
-    check(res, { 'list employees 200': (r) => r.status === 200 });
-    listDuration.add(res.timings.duration);
-  }
+  // 100% payroll calculate — every request is the CPU-heavy POST so per-pod
+  // CPU stays pinned above the 50% HPA target throughout the run.
+  const res = http.post(
+    `${base}/api/payroll/calculate`,
+    JSON.stringify({
+      Month:              CURRENT_MONTH,
+      Year:               CURRENT_YEAR,
+      ServiceChargeTotal: SERVICE_CHARGE_TOTAL,
+    }),
+    { headers }
+  );
+  check(res, { 'payroll calculate 200/202': (r) => r.status === 200 || r.status === 202 });
+  payrollDuration.add(res.timings.duration);
 
   errorRate.add(res.status === 0 || res.status >= 500 ? 1 : 0);
 }
