@@ -22,10 +22,10 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               cpu: 1000m
-              memory: 512Mi
+              memory: 1024Mi
           env:
             - name: ASPNETCORE_URLS
               value: http://+:5000
